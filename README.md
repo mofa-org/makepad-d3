@@ -2,6 +2,16 @@
 
 A D3.js-compatible data visualization library for [Makepad](https://github.com/makepad/makepad)'s GPU-accelerated rendering.
 
+## Quick Run
+
+```bash
+git clone https://github.com/mofa-org/makepad-d3.git
+cd makepad-d3
+cargo run --example chart_zoo
+```
+
+This launches the Chart Zoo with 40+ interactive chart types including Bar, Line, Pie, Sankey, Force Graph, Treemap, Globe Map, and more.
+
 ## Features
 
 - **Scales**: Linear, Log, Pow, Symlog, Time, Category, Band, Quantize, Quantile, Threshold
