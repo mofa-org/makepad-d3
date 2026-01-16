@@ -106,16 +106,15 @@ live_design! {
         text: "< Back to Charts"
     }
 
-    // Floating back button (stays fixed at top-left corner)
+    // Floating back button (blue, positioned by parent View)
     FloatingBackButton = <Button> {
         width: Fit,
         height: Fit,
-        abs_pos: vec2(20.0, 20.0),
         padding: {left: 16, right: 16, top: 10, bottom: 10},
 
         draw_bg: {
-            instance color: #555555,
-            instance color_hover: #4A90D9,
+            instance color: #4A90D9,
+            instance color_hover: #3A7BC8,
             instance border_radius: 8.0,
 
             fn pixel(self) -> vec4 {
@@ -2132,9 +2131,17 @@ live_design! {
                     }
                 }
 
-                // ============ Floating Back Button (stays on top) ============
-                floating_back_button = <FloatingBackButton> {
-                    visible: false,
+                // ============ Floating Back Button (stays on top-right) ============
+                <View> {
+                    width: Fill,
+                    height: Fit,
+                    flow: Right,
+                    align: {x: 1.0, y: 0.0},
+                    margin: {top: 20, right: 20},
+
+                    floating_back_button = <FloatingBackButton> {
+                        visible: false,
+                    }
                 }
             }
         }
