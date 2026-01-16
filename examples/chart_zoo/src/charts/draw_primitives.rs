@@ -172,6 +172,31 @@ live_design! {
         }
     }
 
+    // Circle ring (stroke-only circle) with anti-aliasing
+    pub DrawCircleRing = {{DrawCircleRing}} {
+        fn pixel(self) -> vec4 {
+            let uv = self.pos;
+            let center = vec2(0.5, 0.5);
+            let dist = distance(uv, center) * 2.0; // 0 at center, 1 at edge
+
+            // Ring parameters
+            let outer_radius = 1.0;
+            let inner_radius = outer_radius - self.stroke_width * 2.0;
+
+            // Anti-alias the edges
+            let aa = 0.03;
+            let outer_alpha = 1.0 - smoothstep(outer_radius - aa, outer_radius, dist);
+            let inner_alpha = smoothstep(inner_radius - aa, inner_radius, dist);
+            let alpha = outer_alpha * inner_alpha;
+
+            if alpha < 0.01 {
+                return vec4(0.0, 0.0, 0.0, 0.0);
+            }
+
+            return vec4(self.color.rgb * self.color.a * alpha, self.color.a * alpha);
+        }
+    }
+
     // GPU-accelerated triangle drawing with barycentric coordinates
     pub DrawTriangle = {{DrawTriangle}} {
         fn pixel(self) -> vec4 {
@@ -468,5 +493,27 @@ impl DrawTriangle {
     /// Disable gradient (use solid color)
     pub fn disable_gradient(&mut self) {
         self.gradient_enabled = 0.0;
+    }
+}
+
+/// Circle ring (stroke-only circle) drawing primitive
+#[derive(Live, LiveHook, LiveRegister)]
+#[repr(C)]
+pub struct DrawCircleRing {
+    #[deref] pub draw_super: DrawQuad,
+    #[live] pub color: Vec4,
+    #[live(0.05)] pub stroke_width: f32,
+}
+
+impl DrawCircleRing {
+    /// Draw a circle ring at the given center with the given radius
+    pub fn draw_ring(&mut self, cx: &mut Cx2d, center: DVec2, radius: f64, stroke_width: f64) {
+        let size = radius + stroke_width;
+        self.stroke_width = (stroke_width / size) as f32 * 0.5;
+        let rect = Rect {
+            pos: dvec2(center.x - size, center.y - size),
+            size: dvec2(size * 2.0, size * 2.0),
+        };
+        self.draw_abs(cx, rect);
     }
 }

@@ -67,6 +67,7 @@ pub mod word_cloud;
 pub mod contour_chart;
 pub mod quiver_chart;
 pub mod surface_plot;
+pub mod apollonius_problem;
 
 pub use draw_primitives::*;
 pub use axis_renderer::*;
@@ -110,6 +111,7 @@ pub use word_cloud::*;
 pub use contour_chart::*;
 pub use quiver_chart::*;
 pub use surface_plot::*;
+pub use apollonius_problem::*;
 
 /// Register all chart widget live designs
 pub fn live_design(cx: &mut Cx) {
@@ -155,4 +157,5 @@ pub fn live_design(cx: &mut Cx) {
     contour_chart::live_design(cx);
     quiver_chart::live_design(cx);
     surface_plot::live_design(cx);
+    apollonius_problem::live_design(cx);
 }

@@ -324,7 +324,10 @@ live_design! {
                             <ChartTitle> { label = { label = { text: "3D Surface" } } }
                         }
 
-                        <View> { width: Fill, height: 280 }
+                        apollonius_card = <ChartCard> {
+                            apollonius = <ApolloniusProblemWidget> { width: Fill, height: Fill }
+                            <ChartTitle> { label = { label = { text: "Apollonius Problem" } } }
+                        }
                     }
 
                     // Row 3c: Financial Charts
@@ -2131,6 +2134,48 @@ live_design! {
                     }
                 }
 
+                // ============ Apollonius Problem Detail Page ============
+                apollonius_detail_page = <ScrollXYView> {
+                    visible: false,
+                    flow: Down,
+                    spacing: 0,
+                    padding: {left: 20, right: 20, top: 60, bottom: 20},
+
+                    <View> {
+                        width: Fill, height: Fit, flow: Right, spacing: 20, margin: {bottom: 20}, align: {y: 0.5},
+                        <Label> {
+                            text: "Apollonius' Problem - Tangent Circles"
+                            draw_text: { color: #333333, text_style: <FONT_DATA> { font_size: 24.0 } }
+                        }
+                    }
+
+                    <SectionHeader> { text: "Single Solution (Internally Tangent)" }
+                    <DetailChartCard> {
+                        height: 600,
+                        apollonius_single = <ApolloniusProblemWidget> { width: Fill, height: Fill }
+                    }
+                    <View> {
+                        width: Fill, height: Fit, margin: {top: 10, bottom: 25},
+                        <Label> {
+                            text: "Drag the three circles to see the tangent circle update in real-time.\nShows the circle that is internally tangent to all three given circles."
+                            draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
+                        }
+                    }
+
+                    <SectionHeader> { text: "All Eight Solutions" }
+                    <DetailChartCard> {
+                        height: 600,
+                        apollonius_all = <ApolloniusProblemWidget> { width: Fill, height: Fill }
+                    }
+                    <View> {
+                        width: Fill, height: Fit, margin: {top: 10},
+                        <Label> {
+                            text: "Shows all eight possible tangent circles (using different sign combinations).\nEach colored ring represents a different solution to Apollonius' problem.\nDrag the input circles to explore different configurations."
+                            draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
+                        }
+                    }
+                }
+
                 // ============ Floating Back Button (stays on top-right) ============
                 <View> {
                     width: Fill,
@@ -2192,6 +2237,7 @@ pub enum CurrentPage {
     ArcDiagramDetail,
     WordCloudDetail,
     EdgeBundlingDetail,
+    ApolloniusDetail,
 }
 
 #[derive(Live, LiveHook)]
@@ -2357,6 +2403,9 @@ impl MatchEvent for App {
         if self.ui.view(id!(edge_bundling_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::EdgeBundlingDetail);
         }
+        if self.ui.view(id!(apollonius_card)).finger_up(actions).is_some() {
+            self.navigate_to(cx, CurrentPage::ApolloniusDetail);
+        }
 
         // Handle floating back button
         if self.ui.button(id!(floating_back_button)).clicked(actions) {
@@ -2410,6 +2459,7 @@ impl App {
         self.ui.view(id!(arc_diagram_detail_page)).set_visible(cx, false);
         self.ui.view(id!(word_cloud_detail_page)).set_visible(cx, false);
         self.ui.view(id!(edge_bundling_detail_page)).set_visible(cx, false);
+        self.ui.view(id!(apollonius_detail_page)).set_visible(cx, false);
 
         // Show/hide floating back button (visible on detail pages, hidden on main)
         let show_floating_back = page != CurrentPage::Main;
@@ -2486,6 +2536,11 @@ impl App {
             CurrentPage::ArcDiagramDetail => self.ui.view(id!(arc_diagram_detail_page)).set_visible(cx, true),
             CurrentPage::WordCloudDetail => self.ui.view(id!(word_cloud_detail_page)).set_visible(cx, true),
             CurrentPage::EdgeBundlingDetail => self.ui.view(id!(edge_bundling_detail_page)).set_visible(cx, true),
+            CurrentPage::ApolloniusDetail => {
+                self.ui.view(id!(apollonius_detail_page)).set_visible(cx, true);
+                self.ui.apollonius_problem_widget(id!(apollonius_single)).initialize_single_solution(cx);
+                self.ui.apollonius_problem_widget(id!(apollonius_all)).initialize_all_solutions(cx);
+            }
         }
 
         self.ui.redraw(cx);
