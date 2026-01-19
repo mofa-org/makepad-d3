@@ -334,7 +334,22 @@ live_design! {
                         }
                     }
 
-                    // Row 3c: Financial Charts
+                    // Row 3c: Color Space Demos
+                    <SectionHeader> { text: "Color Space Interpolation" }
+                    <View> {
+                        width: Fill,
+                        height: Fit,
+                        flow: Right,
+                        spacing: 0,
+
+                        color_interp_card = <ChartCard> {
+                            height: 400,
+                            color_interp = <ColorInterpolationWidget> { width: Fill, height: Fill }
+                            <ChartTitle> { label = { label = { text: "Oklab vs RGB/HSL/Lab" } } }
+                        }
+                    }
+
+                    // Row 3d: Financial Charts
                     <SectionHeader> { text: "Financial & Time Series" }
                     <View> {
                         width: Fill,
@@ -949,35 +964,39 @@ live_design! {
                     <View> {
                         width: Fill, height: Fit, flow: Right, spacing: 20, margin: {bottom: 20}, align: {y: 0.5},
                         <Label> {
-                            text: "Treemap - D3 Style Hierarchical Visualization"
+                            text: "Treemap - D3 Style Tiling Methods"
                             draw_text: { color: #333333, text_style: <FONT_DATA> { font_size: 24.0 } }
                         }
                     }
 
-                    <SectionHeader> { text: "Market Sectors (Squarify Tiling)" }
+                    <SectionHeader> { text: "Binary Tiling (D3 Default)" }
                     <DetailChartCard> {
-                        height: 450,
-                        <TreemapWidget> { width: Fill, height: Fill }
-                    }
-                    <View> {
-                        width: Fill, height: Fit, margin: {top: 10, bottom: 25},
-                        <Label> {
-                            text: "Market sector allocation treemap showing Technology, Healthcare, Finance, Energy, and Consumer sectors.\nRectangle area represents market value. Uses squarify tiling for optimal aspect ratios."
-                            draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
-                        }
+                        height: 500,
+                        treemap_binary = <TreemapWidget> { width: Fill, height: Fill }
                     }
 
-                    <SectionHeader> { text: "D3 Flare Package Hierarchy (Tableau10 Colors)" }
+                    <SectionHeader> { text: "Squarify (Best Aspect Ratio)" }
                     <DetailChartCard> {
-                        height: 450,
-                        treemap_flare = <TreemapWidget> { width: Fill, height: Fill }
+                        height: 500,
+                        treemap_squarify = <TreemapWidget> { width: Fill, height: Fill }
                     }
-                    <View> {
-                        width: Fill, height: Fit, margin: {top: 10},
-                        <Label> {
-                            text: "D3 flare visualization toolkit hierarchy - analytics, animate, data, display, scale, vis.\nInspired by the classic D3 treemap example using schemeTableau10 color palette."
-                            draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
-                        }
+
+                    <SectionHeader> { text: "Slice-Dice (Alternating)" }
+                    <DetailChartCard> {
+                        height: 500,
+                        treemap_slicedice = <TreemapWidget> { width: Fill, height: Fill }
+                    }
+
+                    <SectionHeader> { text: "Slice (Horizontal Only)" }
+                    <DetailChartCard> {
+                        height: 500,
+                        treemap_slice = <TreemapWidget> { width: Fill, height: Fill }
+                    }
+
+                    <SectionHeader> { text: "Dice (Vertical Only)" }
+                    <DetailChartCard> {
+                        height: 500,
+                        treemap_dice = <TreemapWidget> { width: Fill, height: Fill }
                     }
                 }
 
@@ -2282,12 +2301,18 @@ pub struct App {
 
     #[rust]
     current_page: CurrentPage,
+
+    #[rust]
+    front_treemap_initialized: bool,
 }
 
 impl LiveRegister for App {
     fn live_register(cx: &mut Cx) {
-        // Register makepad_widgets first, then custom chart widgets
+        // Register makepad_widgets first
         makepad_widgets::live_design(cx);
+        // Register render3d drawing primitives (required by 3D charts)
+        makepad_d3::render3d::live_design(cx);
+        // Then custom chart widgets
         charts::live_design(cx);
     }
 }
@@ -2301,6 +2326,12 @@ impl AppMain for App {
 
 impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
+        // Initialize front page treemap on first action (to avoid stack overflow during startup)
+        if !self.front_treemap_initialized {
+            self.ui.treemap_widget(id!(treemap)).initialize_default(cx);
+            self.front_treemap_initialized = true;
+        }
+
         // Handle chart card clicks to navigate to detail pages
         // Basic charts
         if self.ui.view(id!(bar_card)).finger_up(actions).is_some() {
@@ -2506,7 +2537,11 @@ impl App {
 
         // Show the target page
         match page {
-            CurrentPage::Main => self.ui.view(id!(main_page)).set_visible(cx, true),
+            CurrentPage::Main => {
+                self.ui.view(id!(main_page)).set_visible(cx, true);
+                // Initialize front page treemap
+                self.ui.treemap_widget(id!(treemap)).initialize_default(cx);
+            }
             CurrentPage::LineDetail => self.ui.view(id!(line_detail_page)).set_visible(cx, true),
             CurrentPage::BarDetail => self.ui.view(id!(bar_detail_page)).set_visible(cx, true),
             CurrentPage::PieDetail => self.ui.view(id!(pie_detail_page)).set_visible(cx, true),
@@ -2515,7 +2550,11 @@ impl App {
             CurrentPage::ForceGraphDetail => self.ui.view(id!(force_graph_detail_page)).set_visible(cx, true),
             CurrentPage::TreemapDetail => {
                 self.ui.view(id!(treemap_detail_page)).set_visible(cx, true);
-                self.ui.treemap_widget(id!(treemap_flare)).initialize_flare_data(cx);
+                self.ui.treemap_widget(id!(treemap_binary)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Binary);
+                self.ui.treemap_widget(id!(treemap_squarify)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Squarify);
+                self.ui.treemap_widget(id!(treemap_slicedice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::SliceDice);
+                self.ui.treemap_widget(id!(treemap_slice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Slice);
+                self.ui.treemap_widget(id!(treemap_dice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Dice);
             }
             CurrentPage::CirclePackDetail => self.ui.view(id!(circle_pack_detail_page)).set_visible(cx, true),
             CurrentPage::SunburstDetail => {
