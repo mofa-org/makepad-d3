@@ -27,6 +27,7 @@ pub mod area_variants;
 pub mod force_graph;
 pub mod treemap_chart;
 pub mod circle_pack;
+pub mod packed_bubble_chart;
 pub mod globe_map;
 pub mod sunburst;
 
@@ -85,6 +86,7 @@ pub use area_variants::*;
 pub use force_graph::*;
 pub use treemap_chart::*;
 pub use circle_pack::*;
+pub use packed_bubble_chart::*;
 pub use globe_map::*;
 pub use sunburst::*;
 pub use chord_diagram::*;
@@ -131,6 +133,7 @@ pub fn live_design(cx: &mut Cx) {
     force_graph::live_design(cx);
     treemap_chart::live_design(cx);
     circle_pack::live_design(cx);
+    packed_bubble_chart::live_design(cx);
     globe_map::live_design(cx);
     sunburst::live_design(cx);
     chord_diagram::live_design(cx);
