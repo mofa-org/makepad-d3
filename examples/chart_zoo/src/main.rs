@@ -240,7 +240,11 @@ live_design! {
                             <ChartTitle> { label = { label = { text: "Sunburst" } } }
                         }
 
-                        <View> { width: Fill, height: 280 }
+                        packed_bubble_card = <ChartCard> {
+                            packed_bubble = <PackedBubbleChart> { width: Fill, height: Fill }
+                            <ChartTitle> { label = { label = { text: "Packed Bubbles" } } }
+                        }
+
                         <View> { width: Fill, height: 280 }
                     }
 
@@ -1044,6 +1048,36 @@ live_design! {
                         width: Fill, height: Fit, margin: {top: 10},
                         <Label> {
                             text: "D3 flare visualization toolkit hierarchy with rainbow color interpolation.\nCategories: analytics, animate, data, display, vis. Inspired by classic D3 sunburst example."
+                            draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
+                        }
+                    }
+                }
+
+                // ============ Packed Bubble Chart Detail Page ============
+                packed_bubble_detail_page = <ScrollXYView> {
+                    visible: false,
+                    flow: Down,
+                    spacing: 0,
+                    padding: {left: 20, right: 20, top: 60, bottom: 20},
+
+                    <View> {
+                        width: Fill, height: Fit, flow: Right, spacing: 20, margin: {bottom: 20}, align: {y: 0.5},
+                        <Label> {
+                            text: "Packed Bubbles - Non-Hierarchical Circle Packing"
+                            draw_text: { color: #333333, text_style: <FONT_DATA> { font_size: 24.0 } }
+                        }
+                    }
+
+                    <SectionHeader> { text: "Flare Visualization Toolkit Components" }
+                    <DetailChartCard> {
+                        height: 1000,
+                        <PackedBubbleChart> { width: Fill, height: Fill }
+                    }
+
+                    <View> {
+                        width: Fill, height: Fit, margin: {top: 15},
+                        <Label> {
+                            text: "Packed bubble charts display leaf nodes of a hierarchy as non-overlapping circles.\nCircle area is proportional to value, and color represents the parent category.\nBased on D3's classic bubble chart visualization."
                             draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
                         }
                     }
@@ -2235,6 +2269,7 @@ pub enum CurrentPage {
     HorizonDetail,
     SlopeDetail,
     ArcDiagramDetail,
+    PackedBubbleDetail,
     WordCloudDetail,
     EdgeBundlingDetail,
     ApolloniusDetail,
@@ -2296,6 +2331,9 @@ impl MatchEvent for App {
         }
         if self.ui.view(id!(sunburst_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::SunburstDetail);
+        }
+        if self.ui.view(id!(packed_bubble_card)).finger_up(actions).is_some() {
+            self.navigate_to(cx, CurrentPage::PackedBubbleDetail);
         }
 
         // Geographic
@@ -2429,6 +2467,7 @@ impl App {
         self.ui.view(id!(treemap_detail_page)).set_visible(cx, false);
         self.ui.view(id!(circle_pack_detail_page)).set_visible(cx, false);
         self.ui.view(id!(sunburst_detail_page)).set_visible(cx, false);
+        self.ui.view(id!(packed_bubble_detail_page)).set_visible(cx, false);
         self.ui.view(id!(globe_detail_page)).set_visible(cx, false);
         self.ui.view(id!(histogram_detail_page)).set_visible(cx, false);
         self.ui.view(id!(box_plot_detail_page)).set_visible(cx, false);
@@ -2483,6 +2522,7 @@ impl App {
                 self.ui.view(id!(sunburst_detail_page)).set_visible(cx, true);
                 self.ui.sunburst_widget(id!(sunburst_flare)).initialize_flare_data(cx);
             }
+            CurrentPage::PackedBubbleDetail => self.ui.view(id!(packed_bubble_detail_page)).set_visible(cx, true),
             CurrentPage::GlobeDetail => self.ui.view(id!(globe_detail_page)).set_visible(cx, true),
             CurrentPage::HistogramDetail => self.ui.view(id!(histogram_detail_page)).set_visible(cx, true),
             CurrentPage::BoxPlotDetail => self.ui.view(id!(box_plot_detail_page)).set_visible(cx, true),
