@@ -90,6 +90,17 @@ pub fn script_mod(vm: &mut makepad_widgets::ScriptVm) {
     let _ = splash::host::script_mod(vm);
     // Chart widgets (mod.d3.BarChart, ...) + widgets-prelude injection.
     let _ = splash::charts::script_mod(vm);
+    // Statistical charts (mod.d3.Histogram, Heatmap, RadarChart, BoxPlot).
+    let _ = splash::charts_stat::script_mod(vm);
+    // Hierarchy charts (mod.d3.Treemap, Sunburst, CirclePack, TreeChart).
+    let _ = splash::charts_hier::script_mod(vm);
+    // Flow charts (mod.d3.Sankey, ChordDiagram, ArcDiagram).
+    let _ = splash::charts_flow::script_mod(vm);
+    // Network/density/geo charts (mod.d3.ForceGraph, Hexbin, Ridgeline,
+    // Horizon, Contour, Globe).
+    let _ = splash::charts_net::script_mod(vm);
+    // 3D charts (mod.d3.Surface3D, Scatter3D, Bar3D).
+    let _ = splash::charts_3d::script_mod(vm);
 }
 
 /// Prelude module for convenient imports

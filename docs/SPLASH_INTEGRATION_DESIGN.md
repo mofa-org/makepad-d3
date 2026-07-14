@@ -564,3 +564,43 @@ isolate renders charts from a runtime body string (screenshot-verified).
 **Remaining:** §11 Phase 4 (port the ~50 chart_zoo widgets into `d3.*` —
 `[[example]] chart_zoo` is commented out in `Cargo.toml` until then) and
 Phase 5 (authoring guide `docs/d3-splash.md`, release).
+
+---
+
+## 15. Phase 4 + 5 completion (2026-07-14)
+
+Phases 4 and 5 were executed the day after the migration. The `d3.*`
+namespace now holds **21 chart widgets** (screenshot-verified in the
+`splash_demo` gallery, zero script errors, clippy-clean, 813 tests):
+
+| Wave | Widgets | Module |
+|---|---|---|
+| MVP | BarChart, LineChart, AreaChart, ScatterChart, PieChart | `src/splash/charts.rs` |
+| 1 — statistical | Histogram, Heatmap, RadarChart, BoxPlot | `src/splash/charts_stat.rs` |
+| 2 — hierarchies | Treemap, Sunburst, CirclePack, TreeChart | `src/splash/charts_hier.rs` |
+| 2 — flows | Sankey, ChordDiagram, ArcDiagram | `src/splash/charts_flow.rs` |
+| 3 — networks/density/geo | ForceGraph, Hexbin, Ridgeline, Horizon, Contour, Globe | `src/splash/charts_net.rs` |
+| 4 — 3D | Surface3D, Scatter3D, Bar3D | `src/splash/charts_3d.rs` |
+
+Phase 5 deliverables: `docs/d3-splash.md` (Splash authoring guide for all
+widgets), `CHANGELOG.md`, version **0.2.0**, README catalog.
+
+Implementation notes:
+
+- **3D rendering strategy** (deviation from §9's shader-first assumption):
+  faces come from the render3d core as projected screen quads and are
+  painted back-to-front through `DrawVector` with CPU-side lighting —
+  simpler than the rect-bound quad shaders and pixel-identical for flat
+  faces. The ported `Draw*3D` shader types remain available.
+- **Core layout bugs found**: `TreemapLayout` and `PackLayout` in
+  `src/layout/hierarchy/` produce overlapping/degenerate geometry on the
+  2.0 build (pre-existing; see `treemap-bug-glm.md`). The widgets are
+  self-sufficient — inline squarify and greedy tangent bubble packing —
+  until the core layouts are fixed.
+- **Sankey/Chord** are compact d3-style reimplementations (layered
+  longest-path + relaxation; matrix sub-arc allocation with quadratic
+  ribbons) rather than ports of the 2.5k-line zoo widgets.
+- The zoo's remaining exotic variants (calendar, word cloud, slope,
+  beeswarm, streamgraph, parallel coords, …) are covered conceptually by
+  the 21 widgets' primitives and stay as reference material only; chart_zoo
+  is retired as a build target.

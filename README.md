@@ -57,18 +57,23 @@ impl AppMain for App {
 scope that starts with `use mod.prelude.widgets.*` (which includes every
 `Splash`-hosted body) can write `d3.BarChart{...}` with no extra imports.
 
-### 2. The chart widgets
+### 2. The chart widgets — all 21 of them
 
-All charts share the same contract — declarative props, script methods, and
-event closures:
+Every chart shares the same contract — declarative props, script methods,
+and event closures. The full per-widget reference (data shapes, props,
+methods, events) is **[`docs/d3-splash.md`](docs/d3-splash.md)**; the
+namespace at a glance:
 
-| Widget | `data:` shape | Extra props |
-|---|---|---|
-| `d3.BarChart` | `[v v v ...]` + `labels: ["a" "b" ...]` | `bar_color`, `hover_color` |
-| `d3.LineChart` | numbers, `[[x y], ...]`, or `[{x:.. y:..}, ...]` | `line_color`, `line_width`, `dot_color`, `dot_radius` |
-| `d3.AreaChart` | same as LineChart | `line_color`, `line_width`, `fill_color` |
-| `d3.ScatterChart` | same as LineChart | `dot_color`, `hover_color`, `dot_radius` |
-| `d3.PieChart` | `[v v v ...]` + `labels:` | `inner_radius` (0–0.95, donut hole; slices use d3 Category10) |
+| Category | Widgets |
+|---|---|
+| Basic | `d3.BarChart` `d3.LineChart` `d3.AreaChart` `d3.ScatterChart` `d3.PieChart` |
+| Statistical | `d3.Histogram` `d3.Heatmap` `d3.RadarChart` `d3.BoxPlot` |
+| Hierarchies | `d3.Treemap` `d3.Sunburst` `d3.CirclePack` `d3.TreeChart` |
+| Flows | `d3.Sankey` `d3.ChordDiagram` `d3.ArcDiagram` |
+| Networks / density | `d3.ForceGraph` `d3.Hexbin` `d3.Ridgeline` `d3.Horizon` `d3.Contour` |
+| Geographic | `d3.Globe` (drag to rotate) |
+| 3D | `d3.Surface3D` `d3.Scatter3D` `d3.Bar3D` (drag to orbit, scroll to zoom) |
+| Sandbox host | `d3.Splash` |
 
 Shared props: `width`/`height`, `plot_margin: Inset{...}`, `grid_color`,
 `label_color`. A chart with no `data:` renders a small demo dataset.

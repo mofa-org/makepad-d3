@@ -41,10 +41,20 @@
 use makepad_widgets::*;
 
 pub mod charts;
+pub mod charts_3d;
+pub mod charts_flow;
+pub mod charts_hier;
+pub mod charts_net;
+pub mod charts_stat;
 pub mod host;
 pub mod vm_data;
 
 pub use charts::{D3AreaChart, D3BarChart, D3LineChart, D3PieChart, D3ScatterChart};
+pub use charts_3d::{D3Bar3D, D3Scatter3D, D3Surface3D};
+pub use charts_flow::{D3ArcDiagram, D3ChordDiagram, D3Sankey};
+pub use charts_hier::{D3CirclePack, D3Sunburst, D3TreeChart, D3Treemap};
+pub use charts_net::{D3Contour, D3ForceGraph, D3Globe, D3Hexbin, D3Horizon, D3Ridgeline};
+pub use charts_stat::{D3BoxPlot, D3Heatmap, D3Histogram, D3RadarChart};
 pub use host::D3Splash;
 
 // Creates the `d3` script module namespace. Chart and shader registrations

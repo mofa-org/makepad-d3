@@ -98,6 +98,47 @@ pub fn to_string_vec(vm: &mut ScriptVm, value: ScriptValue) -> Option<Vec<String
     Some(out)
 }
 
+/// Public wrapper over element collection (arrays and object-vecs).
+pub fn elements(vm: &mut ScriptVm, value: ScriptValue) -> Option<Vec<ScriptValue>> {
+    collect_elements(vm, value)
+}
+
+/// Read a named field off a script object value (`NIL` when absent).
+pub fn field(vm: &mut ScriptVm, value: ScriptValue, key: LiveId) -> ScriptValue {
+    if let Some(obj) = value.as_object() {
+        let trap = vm.bx.threads.cur().trap.pass();
+        let v = vm.bx.heap.value(obj, key.into(), trap);
+        if !v.is_err() {
+            return v;
+        }
+    }
+    NIL
+}
+
+/// Cast any script value to a display string (numbers included).
+pub fn to_string_cast(vm: &mut ScriptVm, value: ScriptValue) -> String {
+    if value.is_nil() {
+        return String::new();
+    }
+    vm.bx.heap.temp_string_with(|heap, buf| {
+        heap.cast_to_string(value, buf);
+        buf.to_string()
+    })
+}
+
+/// Read a script sequence of sequences as rows of numbers:
+/// `[[1 2 3], [4 5 6]]`. Non-sequence elements are skipped.
+pub fn to_rows(vm: &mut ScriptVm, value: ScriptValue) -> Option<Vec<Vec<f64>>> {
+    let items = collect_elements(vm, value)?;
+    let mut out = Vec::with_capacity(items.len());
+    for item in items {
+        if let Some(row) = to_f64_vec(vm, item) {
+            out.push(row);
+        }
+    }
+    Some(out)
+}
+
 /// Build a script array from a slice of numbers (for `data()` getters).
 pub fn f64_slice_to_array(vm: &mut ScriptVm, values: &[f64]) -> ScriptValue {
     let arr = vm.bx.heap.new_array();

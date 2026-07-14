@@ -116,7 +116,7 @@ script_mod! {
 
 // ---- Shared helpers ----
 
-fn rgba_to_vec4f(c: crate::color::Rgba) -> Vec4f {
+pub(crate) fn rgba_to_vec4f(c: crate::color::Rgba) -> Vec4f {
     Vec4f {
         x: c.r,
         y: c.g,
@@ -125,7 +125,7 @@ fn rgba_to_vec4f(c: crate::color::Rgba) -> Vec4f {
     }
 }
 
-fn compute_plot_rect(rect: &Rect, m: &Inset) -> Rect {
+pub(crate) fn compute_plot_rect(rect: &Rect, m: &Inset) -> Rect {
     Rect {
         pos: DVec2 {
             x: rect.pos.x + m.left,
@@ -139,7 +139,7 @@ fn compute_plot_rect(rect: &Rect, m: &Inset) -> Rect {
 }
 
 /// Build the vertical (value) scale: pixel range is bottom -> top.
-fn y_scale_for(
+pub(crate) fn y_scale_for(
     data_min: f64,
     data_max: f64,
     explicit: Option<(f64, f64)>,
@@ -168,7 +168,7 @@ fn y_scale_for(
 
 /// Horizontal grid lines + value labels down the left margin.
 #[allow(clippy::too_many_arguments)]
-fn draw_y_grid(
+pub(crate) fn draw_y_grid(
     grid: &mut DrawColor,
     text: &mut DrawText,
     cx: &mut Cx2d,
@@ -200,7 +200,7 @@ fn draw_y_grid(
 }
 
 /// Vertical grid lines + numeric labels along the bottom margin.
-fn draw_x_grid_linear(
+pub(crate) fn draw_x_grid_linear(
     grid: &mut DrawColor,
     text: &mut DrawText,
     cx: &mut Cx2d,
@@ -236,7 +236,7 @@ fn draw_x_grid_linear(
 }
 
 /// Category labels centered under their bands (thinned when crowded).
-fn draw_x_labels_category(
+pub(crate) fn draw_x_labels_category(
     text: &mut DrawText,
     cx: &mut Cx2d,
     scale: &CategoryScale,
@@ -259,7 +259,7 @@ fn draw_x_labels_category(
 
 /// Begin the clipped plot turtle + vector session (mirrors the built-in
 /// ChartView drawing discipline: bg at depth 0, vectors at 2, text at 3).
-fn begin_plot(cx: &mut Cx2d, rect: &Rect, margin: &Inset, vector: &mut DrawVector) {
+pub(crate) fn begin_plot(cx: &mut Cx2d, rect: &Rect, margin: &Inset, vector: &mut DrawVector) {
     cx.begin_turtle(
         Walk {
             abs_pos: Some(rect.pos),
@@ -278,12 +278,12 @@ fn begin_plot(cx: &mut Cx2d, rect: &Rect, margin: &Inset, vector: &mut DrawVecto
     vector.begin();
 }
 
-fn end_plot(cx: &mut Cx2d, vector: &mut DrawVector) {
+pub(crate) fn end_plot(cx: &mut Cx2d, vector: &mut DrawVector) {
     vector.end(cx);
     cx.end_turtle();
 }
 
-fn fire_index_callback(
+pub(crate) fn fire_index_callback(
     cx: &mut Cx,
     uid: WidgetUid,
     source: &ScriptObjectRef,
@@ -299,7 +299,7 @@ fn fire_index_callback(
     );
 }
 
-fn min_max(values: impl Iterator<Item = f64>) -> (f64, f64) {
+pub(crate) fn min_max(values: impl Iterator<Item = f64>) -> (f64, f64) {
     let mut min = f64::INFINITY;
     let mut max = f64::NEG_INFINITY;
     for v in values {
@@ -313,10 +313,10 @@ fn min_max(values: impl Iterator<Item = f64>) -> (f64, f64) {
     (min, max)
 }
 
-const DEMO_VALUES: &[f64] = &[30.0, 86.0, 168.0, 281.0, 303.0, 365.0];
-const DEMO_LABELS: &[&str] = &["A", "B", "C", "D", "E", "F"];
+pub(crate) const DEMO_VALUES: &[f64] = &[30.0, 86.0, 168.0, 281.0, 303.0, 365.0];
+pub(crate) const DEMO_LABELS: &[&str] = &["A", "B", "C", "D", "E", "F"];
 
-fn demo_xy(n: usize) -> Vec<(f64, f64)> {
+pub(crate) fn demo_xy(n: usize) -> Vec<(f64, f64)> {
     (0..n)
         .map(|i| {
             let x = i as f64;
