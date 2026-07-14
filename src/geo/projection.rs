@@ -361,30 +361,75 @@ impl OrthographicProjection {
     }
 
     /// Apply rotation to convert to rotated coordinates
+    ///
+    /// D3's rotation convention (from d3-geo/src/rotation.js):
+    /// - λ (rotate_lambda): Add to longitude
+    /// - φ (rotate_phi): Tilt the pole
+    /// - γ (rotate_gamma): Roll around the viewing axis
     fn rotate_point(&self, lon: f64, lat: f64) -> (f64, f64) {
+        // Step 1: Apply λ rotation (shift longitude)
         let lambda = lon.to_radians() + self.rotate_lambda.to_radians();
         let phi = lat.to_radians();
 
-        // Apply rotation around the pole
+        // Step 2: Apply φ and γ rotation (D3's rotationPhiGamma formula)
+        let delta_phi = self.rotate_phi.to_radians();
+        let delta_gamma = self.rotate_gamma.to_radians();
+
+        let cos_delta_phi = delta_phi.cos();
+        let sin_delta_phi = delta_phi.sin();
+        let cos_delta_gamma = delta_gamma.cos();
+        let sin_delta_gamma = delta_gamma.sin();
+
         let cos_phi = phi.cos();
-        let sin_phi = phi.sin();
-        let cos_gamma = self.rotate_phi.to_radians().cos();
-        let sin_gamma = self.rotate_phi.to_radians().sin();
+        let x = lambda.cos() * cos_phi;
+        let y = lambda.sin() * cos_phi;
+        let z = phi.sin();
 
-        let x = cos_phi * lambda.cos();
-        let y = cos_phi * lambda.sin();
-        let z = sin_phi;
+        // D3's formula for combined φ and γ rotation
+        let k = z * cos_delta_phi + x * sin_delta_phi;
 
-        // Rotate around Y axis (phi rotation)
-        let x2 = x * cos_gamma + z * sin_gamma;
-        let y2 = y;
-        let z2 = -x * sin_gamma + z * cos_gamma;
+        let new_lambda = (y * cos_delta_gamma - k * sin_delta_gamma)
+            .atan2(x * cos_delta_phi - z * sin_delta_phi);
+        let new_phi = (k * cos_delta_gamma + y * sin_delta_gamma)
+            .clamp(-1.0, 1.0)
+            .asin();
 
-        // Convert back to spherical
-        let new_lon = y2.atan2(x2);
-        let new_lat = z2.asin();
+        (new_lambda, new_phi)
+    }
 
-        (new_lon, new_lat)
+    /// Apply inverse rotation to convert from rotated coordinates back to geographic
+    ///
+    /// The inverse applies the same D3 formula with negated angles,
+    /// then subtracts the λ rotation.
+    fn inverse_rotate_point(&self, lambda: f64, phi: f64) -> (f64, f64) {
+        // Apply inverse φ,γ rotation using the same D3 formula with negated angles
+        let delta_phi = -self.rotate_phi.to_radians();
+        let delta_gamma = -self.rotate_gamma.to_radians();
+
+        let cos_delta_phi = delta_phi.cos();
+        let sin_delta_phi = delta_phi.sin();
+        let cos_delta_gamma = delta_gamma.cos();
+        let sin_delta_gamma = delta_gamma.sin();
+
+        let cos_phi = phi.cos();
+        let x = lambda.cos() * cos_phi;
+        let y = lambda.sin() * cos_phi;
+        let z = phi.sin();
+
+        // D3's formula with negated angles
+        let k = z * cos_delta_phi + x * sin_delta_phi;
+
+        let new_lambda = (y * cos_delta_gamma - k * sin_delta_gamma)
+            .atan2(x * cos_delta_phi - z * sin_delta_phi);
+        let new_phi = (k * cos_delta_gamma + y * sin_delta_gamma)
+            .clamp(-1.0, 1.0)
+            .asin();
+
+        // Apply inverse λ rotation
+        let lon = new_lambda.to_degrees() - self.rotate_lambda;
+        let lat = new_phi.to_degrees();
+
+        (lon, lat)
     }
 }
 
@@ -450,19 +495,17 @@ impl Projection for OrthographicProjection {
         let sin_c = c.sin();
         let cos_c = c.cos();
 
-        let lat = if rho == 0.0 {
+        // Compute spherical coordinates in rotated frame
+        let phi = if rho == 0.0 {
             0.0
         } else {
             (py * sin_c / rho).asin()
         };
 
-        let lon = (px * sin_c).atan2(rho * cos_c);
+        let lambda = (px * sin_c).atan2(rho * cos_c);
 
-        // Reverse rotation (simplified - full inverse rotation would be more complex)
-        let final_lon = lon.to_degrees() - self.rotate_lambda;
-        let final_lat = lat.to_degrees();
-
-        (final_lon, final_lat)
+        // Apply inverse rotation to get geographic coordinates
+        self.inverse_rotate_point(lambda, phi)
     }
 
     fn projection_type(&self) -> &'static str {
@@ -529,8 +572,7 @@ impl AlbersProjection {
 
     /// Create an Albers projection optimized for the USA
     pub fn usa() -> Self {
-        Self::with_parallels(29.5, 45.5)
-            .center(-98.0, 39.0)
+        Self::with_parallels(29.5, 45.5).center(-98.0, 39.0)
     }
 
     /// Create with custom standard parallels
@@ -634,13 +676,267 @@ impl Projection for AlbersProjection {
         let theta = px.atan2(rho0_minus_y);
 
         let lon = (theta / self.n).to_degrees() + self.center_lon;
-        let lat = ((self.c - rho * rho * self.n * self.n) / (2.0 * self.n)).asin().to_degrees();
+        let lat = ((self.c - rho * rho * self.n * self.n) / (2.0 * self.n))
+            .asin()
+            .to_degrees();
 
         (lon, lat)
     }
 
     fn projection_type(&self) -> &'static str {
         "albers"
+    }
+}
+
+/// Calculate the bounds of a geometry when projected
+///
+/// Returns [[min_x, min_y], [max_x, max_y]] in projected coordinates.
+pub fn project_bounds<P: Projection>(
+    projection: &P,
+    coordinates: &[[f64; 2]],
+) -> Option<[[f64; 2]; 2]> {
+    if coordinates.is_empty() {
+        return None;
+    }
+
+    let mut min_x = f64::INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+
+    for coord in coordinates {
+        let (lon, lat) = (coord[0], coord[1]);
+        if !projection.is_visible(lon, lat) {
+            continue;
+        }
+        let (x, y) = projection.project(lon, lat);
+        min_x = min_x.min(x);
+        min_y = min_y.min(y);
+        max_x = max_x.max(x);
+        max_y = max_y.max(y);
+    }
+
+    if min_x.is_finite() && min_y.is_finite() && max_x.is_finite() && max_y.is_finite() {
+        Some([[min_x, min_y], [max_x, max_y]])
+    } else {
+        None
+    }
+}
+
+/// Compute scale and translate to fit coordinates within an extent.
+///
+/// This is equivalent to D3's `projection.fitExtent()`.
+///
+/// # Arguments
+/// * `coordinates` - The geographic coordinates [[lon, lat], ...]
+/// * `extent` - The target extent [[x0, y0], [x1, y1]]
+///
+/// # Returns
+/// (scale, translate_x, translate_y) that would fit the geometry
+///
+/// # Example
+///
+/// ```
+/// use makepad_d3::geo::{MercatorProjection, Projection, ProjectionBuilder, compute_fit_extent};
+///
+/// // US bounds (approximate)
+/// let us_bounds = vec![
+///     [-125.0, 24.0],  // SW corner
+///     [-66.0, 24.0],   // SE corner
+///     [-66.0, 50.0],   // NE corner
+///     [-125.0, 50.0],  // NW corner
+/// ];
+///
+/// // Fit to a 960x600 display
+/// let projection = MercatorProjection::new();
+/// let (scale, tx, ty) = compute_fit_extent(&projection, &us_bounds, [[0.0, 0.0], [960.0, 600.0]]);
+///
+/// // Apply the computed values
+/// let fitted = MercatorProjection::new()
+///     .scale(scale)
+///     .translate(tx, ty);
+/// ```
+pub fn compute_fit_extent<P: Projection>(
+    projection: &P,
+    coordinates: &[[f64; 2]],
+    extent: [[f64; 2]; 2],
+) -> (f64, f64, f64) {
+    // First, project all coordinates with scale=1, translate=0
+    // to get the raw projection bounds
+    if coordinates.is_empty() {
+        return (1.0, 0.0, 0.0);
+    }
+
+    let mut min_x = f64::INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+
+    for coord in coordinates {
+        let (lon, lat) = (coord[0], coord[1]);
+        if !projection.is_visible(lon, lat) {
+            continue;
+        }
+        let (x, y) = projection.project(lon, lat);
+        min_x = min_x.min(x);
+        min_y = min_y.min(y);
+        max_x = max_x.max(x);
+        max_y = max_y.max(y);
+    }
+
+    if !min_x.is_finite() || !min_y.is_finite() || !max_x.is_finite() || !max_y.is_finite() {
+        return (1.0, 0.0, 0.0);
+    }
+
+    let [[x0, y0], [x1, y1]] = extent;
+    let extent_width = (x1 - x0).abs();
+    let extent_height = (y1 - y0).abs();
+    let proj_width = max_x - min_x;
+    let proj_height = max_y - min_y;
+
+    if proj_width <= 0.0 || proj_height <= 0.0 {
+        return (1.0, (x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    }
+
+    // Calculate scale to fit (use smaller scale to fit both dimensions)
+    let scale_x = extent_width / proj_width;
+    let scale_y = extent_height / proj_height;
+    let scale = scale_x.min(scale_y);
+
+    // Calculate translate to center the geometry
+    let center_x = (min_x + max_x) / 2.0;
+    let center_y = (min_y + max_y) / 2.0;
+    let target_center_x = (x0 + x1) / 2.0;
+    let target_center_y = (y0 + y1) / 2.0;
+
+    // The translate needed to move projected center to target center
+    // After scaling: new_x = x * scale + tx
+    // We want: center_x * scale + tx = target_center_x
+    // So: tx = target_center_x - center_x * scale
+    // But this assumes projection has no existing translate...
+    // For simplicity, return scale relative to unit projection
+
+    let tx = target_center_x - center_x * scale;
+    let ty = target_center_y - center_y * scale;
+
+    (scale, tx, ty)
+}
+
+/// Compute scale and translate to fit coordinates within a size.
+///
+/// This is equivalent to D3's `projection.fitSize()`.
+///
+/// # Arguments
+/// * `coordinates` - The geographic coordinates [[lon, lat], ...]
+/// * `width` - Target width
+/// * `height` - Target height
+///
+/// # Returns
+/// (scale, translate_x, translate_y) that would fit the geometry
+pub fn compute_fit_size<P: Projection>(
+    projection: &P,
+    coordinates: &[[f64; 2]],
+    width: f64,
+    height: f64,
+) -> (f64, f64, f64) {
+    compute_fit_extent(projection, coordinates, [[0.0, 0.0], [width, height]])
+}
+
+impl MercatorProjection {
+    /// Fit the projection to display given coordinates within an extent.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use makepad_d3::geo::{MercatorProjection, Projection};
+    ///
+    /// // US bounds (approximate)
+    /// let us_bounds = vec![
+    ///     [-125.0, 24.0],
+    ///     [-66.0, 24.0],
+    ///     [-66.0, 50.0],
+    ///     [-125.0, 50.0],
+    /// ];
+    ///
+    /// let projection = MercatorProjection::new()
+    ///     .fit_extent(&us_bounds, [[0.0, 0.0], [960.0, 600.0]]);
+    /// ```
+    pub fn fit_extent(self, coordinates: &[[f64; 2]], extent: [[f64; 2]; 2]) -> Self {
+        // Create a base projection to compute bounds
+        let base = MercatorProjection::new().center(self.center_lon, self.center_lat);
+        let (scale, tx, ty) = compute_fit_extent(&base, coordinates, extent);
+        Self {
+            scale,
+            translate_x: tx,
+            translate_y: ty,
+            ..self
+        }
+    }
+
+    /// Fit the projection to display given coordinates within a size.
+    pub fn fit_size(self, coordinates: &[[f64; 2]], width: f64, height: f64) -> Self {
+        self.fit_extent(coordinates, [[0.0, 0.0], [width, height]])
+    }
+}
+
+impl EquirectangularProjection {
+    /// Fit the projection to display given coordinates within an extent.
+    pub fn fit_extent(self, coordinates: &[[f64; 2]], extent: [[f64; 2]; 2]) -> Self {
+        let base = EquirectangularProjection::new().center(self.center_lon, self.center_lat);
+        let (scale, tx, ty) = compute_fit_extent(&base, coordinates, extent);
+        Self {
+            scale,
+            translate_x: tx,
+            translate_y: ty,
+            ..self
+        }
+    }
+
+    /// Fit the projection to display given coordinates within a size.
+    pub fn fit_size(self, coordinates: &[[f64; 2]], width: f64, height: f64) -> Self {
+        self.fit_extent(coordinates, [[0.0, 0.0], [width, height]])
+    }
+}
+
+impl OrthographicProjection {
+    /// Fit the projection to display given coordinates within an extent.
+    pub fn fit_extent(self, coordinates: &[[f64; 2]], extent: [[f64; 2]; 2]) -> Self {
+        let base = OrthographicProjection::new()
+            .rotate(self.rotate_lambda, self.rotate_phi, self.rotate_gamma)
+            .clip_angle(self.clip_angle);
+        let (scale, tx, ty) = compute_fit_extent(&base, coordinates, extent);
+        Self {
+            scale,
+            translate_x: tx,
+            translate_y: ty,
+            ..self
+        }
+    }
+
+    /// Fit the projection to display given coordinates within a size.
+    pub fn fit_size(self, coordinates: &[[f64; 2]], width: f64, height: f64) -> Self {
+        self.fit_extent(coordinates, [[0.0, 0.0], [width, height]])
+    }
+}
+
+impl AlbersProjection {
+    /// Fit the projection to display given coordinates within an extent.
+    pub fn fit_extent(mut self, coordinates: &[[f64; 2]], extent: [[f64; 2]; 2]) -> Self {
+        // For Albers, we need to recalculate with the new scale
+        let base = AlbersProjection::new()
+            .parallels(self.parallel1, self.parallel2)
+            .center(self.center_lon, self.center_lat);
+        let (scale, tx, ty) = compute_fit_extent(&base, coordinates, extent);
+        self.scale = scale;
+        self.translate_x = tx;
+        self.translate_y = ty;
+        self.compute_constants();
+        self
+    }
+
+    /// Fit the projection to display given coordinates within a size.
+    pub fn fit_size(self, coordinates: &[[f64; 2]], width: f64, height: f64) -> Self {
+        self.fit_extent(coordinates, [[0.0, 0.0], [width, height]])
     }
 }
 
@@ -731,14 +1027,132 @@ mod tests {
 
     #[test]
     fn test_orthographic_visibility() {
-        let proj = OrthographicProjection::new()
-            .rotate(0.0, 0.0, 0.0);
+        let proj = OrthographicProjection::new().rotate(0.0, 0.0, 0.0);
 
         // Front of globe should be visible
         assert!(proj.is_visible(0.0, 0.0));
 
         // Back of globe should not be visible
         assert!(!proj.is_visible(180.0, 0.0));
+    }
+
+    #[test]
+    fn test_orthographic_rotation_lambda() {
+        // λ rotation shifts the center longitude
+        let proj = OrthographicProjection::new()
+            .scale(100.0)
+            .translate(0.0, 0.0)
+            .rotate(-90.0, 0.0, 0.0); // Rotate to center on 90°E
+
+        // Point at 90°E should now be at the center
+        let (x, y) = proj.project(90.0, 0.0);
+        assert!(x.abs() < 0.01, "90°E should be at center, x={}", x);
+        assert!(y.abs() < 0.01, "90°E should be at center, y={}", y);
+    }
+
+    #[test]
+    fn test_orthographic_rotation_phi() {
+        // φ rotation shifts the center latitude
+        let proj = OrthographicProjection::new()
+            .scale(100.0)
+            .translate(0.0, 0.0)
+            .rotate(0.0, -45.0, 0.0); // Rotate to look at 45°N
+
+        // Point at 0°E, 45°N should be near the center
+        let (x, y) = proj.project(0.0, 45.0);
+        assert!(x.abs() < 1.0, "0°E 45°N should be near center, x={}", x);
+        assert!(y.abs() < 1.0, "0°E 45°N should be near center, y={}", y);
+    }
+
+    #[test]
+    fn test_orthographic_rotation_roundtrip() {
+        // Test that project + invert returns the original point
+        // D3 convention: rotate([λ, φ, γ]) centers the projection on (-λ, -φ)
+        // So rotate(100, 40, 0) centers on (-100, -40)
+        let proj = OrthographicProjection::new()
+            .scale(200.0)
+            .translate(300.0, 200.0)
+            .rotate(100.0, 40.0, 0.0);
+
+        // Test with the center point (which should be at translate after projection)
+        let center = (-100.0, -40.0);
+        let (x, y) = proj.project(center.0, center.1);
+
+        // Center should project to translate point
+        assert!(
+            (x - 300.0).abs() < 1.0,
+            "Center X should be at translate, got {}",
+            x
+        );
+        assert!(
+            (y - 200.0).abs() < 1.0,
+            "Center Y should be at translate, got {}",
+            y
+        );
+
+        // Invert should get back to center
+        let (lon, lat) = proj.invert(x, y);
+        assert!(
+            (lon - center.0).abs() < 0.1,
+            "Longitude roundtrip failed: {} -> {}",
+            center.0,
+            lon
+        );
+        assert!(
+            (lat - center.1).abs() < 0.1,
+            "Latitude roundtrip failed: {} -> {}",
+            center.1,
+            lat
+        );
+
+        // Also test a non-center point on the visible side
+        let point = (-80.0, -30.0);
+        let (px, py) = proj.project(point.0, point.1);
+        let (plon, plat) = proj.invert(px, py);
+
+        assert!(
+            (plon - point.0).abs() < 0.5,
+            "Off-center longitude roundtrip failed: {} -> {}",
+            point.0,
+            plon
+        );
+        assert!(
+            (plat - point.1).abs() < 0.5,
+            "Off-center latitude roundtrip failed: {} -> {}",
+            point.1,
+            plat
+        );
+    }
+
+    #[test]
+    fn test_orthographic_rotation_with_gamma() {
+        // γ rotation applies roll after λ and φ
+        let proj_no_roll = OrthographicProjection::new()
+            .scale(100.0)
+            .translate(0.0, 0.0)
+            .rotate(-90.0, 0.0, 0.0);
+
+        let proj_with_roll = OrthographicProjection::new()
+            .scale(100.0)
+            .translate(0.0, 0.0)
+            .rotate(-90.0, 0.0, 45.0); // 45° roll
+
+        // Point at the center should be the same
+        let (x1, y1) = proj_no_roll.project(90.0, 0.0);
+        let (x2, y2) = proj_with_roll.project(90.0, 0.0);
+        assert!(x1.abs() < 0.01);
+        assert!(y1.abs() < 0.01);
+        assert!(x2.abs() < 0.01);
+        assert!(y2.abs() < 0.01);
+
+        // But off-center points should be different
+        let (x1, y1) = proj_no_roll.project(90.0, 30.0);
+        let (x2, y2) = proj_with_roll.project(90.0, 30.0);
+        // With roll, the point should be rotated around the center
+        assert!(
+            (x1 - x2).abs() > 0.1 || (y1 - y2).abs() > 0.1,
+            "Roll should affect off-center points"
+        );
     }
 
     #[test]
@@ -771,5 +1185,59 @@ mod tests {
 
         assert!((lon - original.0).abs() < 0.1);
         assert!((lat - original.1).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_fit_extent_mercator() {
+        // Simple bounding box
+        let bounds = vec![[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]];
+
+        let proj = MercatorProjection::new().fit_extent(&bounds, [[0.0, 0.0], [100.0, 100.0]]);
+
+        // All points should now project within the extent
+        for coord in &bounds {
+            let (x, y) = proj.project(coord[0], coord[1]);
+            assert!(x >= -1.0 && x <= 101.0, "x={} out of bounds", x);
+            assert!(y >= -1.0 && y <= 101.0, "y={} out of bounds", y);
+        }
+    }
+
+    #[test]
+    fn test_fit_size_equirectangular() {
+        let bounds = vec![[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]];
+
+        let proj = EquirectangularProjection::new().fit_size(&bounds, 200.0, 200.0);
+
+        // Center should project near center of extent
+        let (x, y) = proj.project(0.0, 0.0);
+        assert!((x - 100.0).abs() < 10.0, "Center x={} not near 100", x);
+        assert!((y - 100.0).abs() < 10.0, "Center y={} not near 100", y);
+    }
+
+    #[test]
+    fn test_compute_fit_extent_empty() {
+        let proj = MercatorProjection::new();
+        let (scale, tx, ty) = compute_fit_extent(&proj, &[], [[0.0, 0.0], [100.0, 100.0]]);
+
+        // Should return defaults for empty input
+        assert_eq!(scale, 1.0);
+        assert_eq!(tx, 0.0);
+        assert_eq!(ty, 0.0);
+    }
+
+    #[test]
+    fn test_project_bounds() {
+        let proj = EquirectangularProjection::new()
+            .scale(1.0)
+            .translate(0.0, 0.0);
+
+        let coords = vec![[0.0, 0.0], [90.0, 0.0], [90.0, 45.0], [0.0, 45.0]];
+
+        let bounds = project_bounds(&proj, &coords);
+        assert!(bounds.is_some());
+
+        let [[min_x, min_y], [max_x, max_y]] = bounds.unwrap();
+        assert!(min_x < max_x);
+        assert!(min_y < max_y);
     }
 }

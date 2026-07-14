@@ -38,12 +38,16 @@ pub type D3Result<T> = Result<T, D3Error>;
 impl D3Error {
     /// Create an invalid domain error
     pub fn invalid_domain(msg: impl Into<String>) -> Self {
-        Self::InvalidDomain { message: msg.into() }
+        Self::InvalidDomain {
+            message: msg.into(),
+        }
     }
 
     /// Create an invalid range error
     pub fn invalid_range(msg: impl Into<String>) -> Self {
-        Self::InvalidRange { message: msg.into() }
+        Self::InvalidRange {
+            message: msg.into(),
+        }
     }
 
     /// Create an out of bounds error
@@ -53,17 +57,23 @@ impl D3Error {
 
     /// Create an invalid data error
     pub fn invalid_data(msg: impl Into<String>) -> Self {
-        Self::InvalidData { message: msg.into() }
+        Self::InvalidData {
+            message: msg.into(),
+        }
     }
 
     /// Create a parse error
     pub fn parse_error(msg: impl Into<String>) -> Self {
-        Self::ParseError { message: msg.into() }
+        Self::ParseError {
+            message: msg.into(),
+        }
     }
 
     /// Create a configuration error
     pub fn config_error(msg: impl Into<String>) -> Self {
-        Self::ConfigError { message: msg.into() }
+        Self::ConfigError {
+            message: msg.into(),
+        }
     }
 }
 

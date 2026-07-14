@@ -144,14 +144,8 @@ impl CatmullRomCurve {
         // Use differentiation to find the control points
         // For uniform Catmull-Rom, this is straightforward
         if self.alpha == 0.0 {
-            let cp1 = Point::new(
-                p1.x + (p2.x - p0.x) / 6.0,
-                p1.y + (p2.y - p0.y) / 6.0,
-            );
-            let cp2 = Point::new(
-                p2.x - (p3.x - p1.x) / 6.0,
-                p2.y - (p3.y - p1.y) / 6.0,
-            );
+            let cp1 = Point::new(p1.x + (p2.x - p0.x) / 6.0, p1.y + (p2.y - p0.y) / 6.0);
+            let cp2 = Point::new(p2.x - (p3.x - p1.x) / 6.0, p2.y - (p3.y - p1.y) / 6.0);
             return (cp1, cp2);
         }
 
@@ -206,11 +200,7 @@ impl Curve for CatmullRomCurve {
 
             let (cp1, cp2) = self.to_bezier(p0, p1, p2, p3);
 
-            path.push(PathSegment::CurveTo {
-                cp1,
-                cp2,
-                end: p2,
-            });
+            path.push(PathSegment::CurveTo { cp1, cp2, end: p2 });
         }
 
         path
@@ -267,10 +257,7 @@ mod tests {
     #[test]
     fn test_catmull_rom_two_points() {
         let curve = CatmullRomCurve::centripetal();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 2); // Falls back to linear

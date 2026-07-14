@@ -122,7 +122,11 @@ impl Lab {
     /// Get the hue angle in degrees (0-360)
     pub fn hue(&self) -> f32 {
         let h = self.b.atan2(self.a).to_degrees();
-        if h < 0.0 { h + 360.0 } else { h }
+        if h < 0.0 {
+            h + 360.0
+        } else {
+            h
+        }
     }
 }
 

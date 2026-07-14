@@ -2,8 +2,8 @@
 //!
 //! Provides flexible formatting options for numeric and time values displayed on axes.
 
+use chrono::{DateTime, Datelike, Timelike, Utc};
 use std::sync::Arc;
-use chrono::{DateTime, Utc, Datelike, Timelike};
 
 /// Format specifier for numeric axis labels
 #[derive(Clone)]
@@ -38,7 +38,11 @@ impl std::fmt::Debug for NumberFormat {
             Self::Percent => write!(f, "Percent"),
             Self::SI => write!(f, "SI"),
             Self::Currency { prefix, decimals } => {
-                write!(f, "Currency {{ prefix: {:?}, decimals: {} }}", prefix, decimals)
+                write!(
+                    f,
+                    "Currency {{ prefix: {:?}, decimals: {} }}",
+                    prefix, decimals
+                )
             }
             Self::Custom(_) => write!(f, "Custom(<fn>)"),
         }

@@ -171,7 +171,9 @@ impl PackLayout {
     fn pack_front_chain<T>(&self, node: &mut HierarchyNode<T>) {
         // Sort children by radius (descending)
         node.children.sort_by(|a, b| {
-            b.radius.partial_cmp(&a.radius).unwrap_or(std::cmp::Ordering::Equal)
+            b.radius
+                .partial_cmp(&a.radius)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let n = node.children.len();
@@ -211,6 +213,7 @@ impl PackLayout {
             let mut best_x = 0.0;
             let mut best_y = 0.0;
             let mut best_dist = f64::INFINITY;
+            let mut found_valid_position = false;
 
             for j in 0..i {
                 for k in (j + 1)..i {
@@ -238,8 +241,42 @@ impl PackLayout {
                             best_dist = dist;
                             best_x = x;
                             best_y = y;
+                            found_valid_position = true;
                         }
                     }
+                }
+            }
+
+            // Fallback: if no valid position found, place outside all existing circles
+            if !found_valid_position {
+                // Find the circle farthest from the origin and place new circle beyond it
+                let mut max_dist: f64 = 0.0;
+                let mut farthest_idx = 0;
+                for j in 0..i {
+                    let dist = (node.children[j].x.powi(2) + node.children[j].y.powi(2)).sqrt()
+                        + node.children[j].radius;
+                    if dist > max_dist {
+                        max_dist = dist;
+                        farthest_idx = j;
+                    }
+                }
+
+                // Place the new circle along the direction from origin to farthest circle
+                let fx = node.children[farthest_idx].x;
+                let fy = node.children[farthest_idx].y;
+                let fr = node.children[farthest_idx].radius;
+                let dist_to_farthest = (fx * fx + fy * fy).sqrt();
+
+                if dist_to_farthest > 0.001 {
+                    // Normalize direction and place beyond farthest
+                    let dir_x = fx / dist_to_farthest;
+                    let dir_y = fy / dist_to_farthest;
+                    best_x = fx + dir_x * (fr + ri);
+                    best_y = fy + dir_y * (fr + ri);
+                } else {
+                    // Farthest is at origin, place to the right
+                    best_x = fr + ri;
+                    best_y = 0.0;
                 }
             }
 
@@ -405,7 +442,11 @@ mod tests {
 
         // All circles should have positive radii
         for node in positioned.iter() {
-            assert!(node.radius > 0.0, "Node {} has non-positive radius", node.data);
+            assert!(
+                node.radius > 0.0,
+                "Node {} has non-positive radius",
+                node.data
+            );
         }
     }
 
@@ -532,5 +573,80 @@ mod tests {
         let r1 = positioned.children[0].radius;
         let r2 = positioned.children[1].radius;
         assert!((r1 - r2).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_pack_many_children_positions_valid() {
+        // Test that many children all get valid positions
+        let mut root = HierarchyNode::from_label("root", 0.0);
+        for i in 0..10 {
+            root.add_child(HierarchyNode::from_label(
+                &format!("child_{}", i),
+                (i + 1) as f64 * 10.0,
+            ));
+        }
+
+        let layout = PackLayout::new().size(500.0, 500.0);
+        let positioned = layout.layout(&root);
+
+        // All children should have finite, non-zero positions
+        for (i, child) in positioned.children.iter().enumerate() {
+            assert!(
+                child.x.is_finite() && child.y.is_finite(),
+                "Child {} has invalid position ({}, {})",
+                i,
+                child.x,
+                child.y
+            );
+            assert!(
+                child.radius > 0.0,
+                "Child {} has non-positive radius {}",
+                i,
+                child.radius
+            );
+        }
+
+        // No children should overlap
+        let children = &positioned.children;
+        for i in 0..children.len() {
+            for j in (i + 1)..children.len() {
+                let dx = children[i].x - children[j].x;
+                let dy = children[i].y - children[j].y;
+                let dist = (dx * dx + dy * dy).sqrt();
+                let min_dist = children[i].radius + children[j].radius;
+
+                assert!(
+                    dist >= min_dist - 1.0,
+                    "Children {} and {} overlap: dist={}, min_dist={}",
+                    i,
+                    j,
+                    dist,
+                    min_dist
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_pack_equal_sized_children() {
+        // Test edge case with many equal-sized children
+        let mut root = HierarchyNode::from_label("root", 0.0);
+        for i in 0..6 {
+            root.add_child(HierarchyNode::from_label(&format!("child_{}", i), 100.0));
+        }
+
+        let layout = PackLayout::new().size(300.0, 300.0);
+        let positioned = layout.layout(&root);
+
+        // All positions should be valid (not at origin for all)
+        let mut all_at_origin = true;
+        for child in &positioned.children {
+            if child.x.abs() > 0.001 || child.y.abs() > 0.001 {
+                all_at_origin = false;
+                break;
+            }
+        }
+
+        assert!(!all_at_origin, "Not all children should be at the origin");
     }
 }

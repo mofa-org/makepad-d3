@@ -114,7 +114,11 @@ impl ZoomTransform {
 
     /// Identity transform (no zoom, no translation)
     pub fn identity() -> Self {
-        Self { k: 1.0, x: 0.0, y: 0.0 }
+        Self {
+            k: 1.0,
+            x: 0.0,
+            y: 0.0,
+        }
     }
 
     /// Create a transform with only scale
@@ -299,6 +303,8 @@ impl ZoomBehavior {
 
     /// Handle mouse wheel event
     ///
+    /// Uses D3's invert→zoom→project pattern to keep the cursor position fixed.
+    ///
     /// # Arguments
     /// * `transform` - Current zoom transform (will be modified)
     /// * `delta` - Wheel delta (positive = zoom in, negative = zoom out)
@@ -315,21 +321,28 @@ impl ZoomBehavior {
         center_y: f64,
     ) -> bool {
         let k0 = transform.k;
-        let k1 = (k0 * (1.0 + delta * self.wheel_delta))
-            .clamp(self.scale_extent.0, self.scale_extent.1);
+        let k1 =
+            (k0 * (1.0 + delta * self.wheel_delta)).clamp(self.scale_extent.0, self.scale_extent.1);
 
         if (k1 - k0).abs() < 1e-10 {
             return false;
         }
 
-        // Calculate new translation to keep center point fixed
+        // D3's invert→zoom→project pattern:
+        // 1. Find what data coordinate is under the cursor (invert)
+        let (data_x, data_y) = transform.invert(center_x, center_y);
+
+        // 2. Update scale
+        transform.k = k1;
+
+        // 3. Adjust translation so the same data point stays under the cursor (project)
+        // Formula: center = data * k + translate  =>  translate = center - data * k
         if self.zoom_x {
-            transform.x = center_x - (center_x - transform.x) * k1 / k0;
+            transform.x = center_x - data_x * k1;
         }
         if self.zoom_y {
-            transform.y = center_y - (center_y - transform.y) * k1 / k0;
+            transform.y = center_y - data_y * k1;
         }
-        transform.k = k1;
 
         self.constrain(transform);
         true
@@ -344,12 +357,7 @@ impl ZoomBehavior {
     ///
     /// # Returns
     /// Whether the transform changed
-    pub fn handle_pan(
-        &self,
-        transform: &mut ZoomTransform,
-        delta_x: f64,
-        delta_y: f64,
-    ) -> bool {
+    pub fn handle_pan(&self, transform: &mut ZoomTransform, delta_x: f64, delta_y: f64) -> bool {
         if !self.pan_enabled {
             return false;
         }
@@ -366,6 +374,8 @@ impl ZoomBehavior {
     }
 
     /// Handle pinch zoom (for touch devices)
+    ///
+    /// Uses D3's invert→zoom→project pattern to keep the pinch center fixed.
     ///
     /// # Arguments
     /// * `transform` - Current zoom transform
@@ -386,13 +396,16 @@ impl ZoomBehavior {
             return false;
         }
 
+        // D3's invert→zoom→project pattern
+        let (data_x, data_y) = transform.invert(center_x, center_y);
+        transform.k = k1;
+
         if self.zoom_x {
-            transform.x = center_x - (center_x - transform.x) * k1 / k0;
+            transform.x = center_x - data_x * k1;
         }
         if self.zoom_y {
-            transform.y = center_y - (center_y - transform.y) * k1 / k0;
+            transform.y = center_y - data_y * k1;
         }
-        transform.k = k1;
 
         self.constrain(transform);
         true
@@ -422,23 +435,21 @@ impl ZoomBehavior {
     }
 
     /// Programmatically zoom to a specific scale
-    pub fn zoom_to(
-        &self,
-        transform: &mut ZoomTransform,
-        scale: f64,
-        center_x: f64,
-        center_y: f64,
-    ) {
-        let k0 = transform.k;
+    ///
+    /// Uses D3's invert→zoom→project pattern to keep the center point fixed.
+    pub fn zoom_to(&self, transform: &mut ZoomTransform, scale: f64, center_x: f64, center_y: f64) {
         let k1 = scale.clamp(self.scale_extent.0, self.scale_extent.1);
 
+        // D3's invert→zoom→project pattern
+        let (data_x, data_y) = transform.invert(center_x, center_y);
+        transform.k = k1;
+
         if self.zoom_x {
-            transform.x = center_x - (center_x - transform.x) * k1 / k0;
+            transform.x = center_x - data_x * k1;
         }
         if self.zoom_y {
-            transform.y = center_y - (center_y - transform.y) * k1 / k0;
+            transform.y = center_y - data_y * k1;
         }
-        transform.k = k1;
 
         self.constrain(transform);
     }
@@ -469,7 +480,7 @@ mod tests {
         let t = ZoomTransform::new(2.0, 100.0, 50.0);
         let (x, y) = t.apply(10.0, 20.0);
         assert_eq!(x, 120.0); // 10 * 2 + 100
-        assert_eq!(y, 90.0);  // 20 * 2 + 50
+        assert_eq!(y, 90.0); // 20 * 2 + 50
     }
 
     #[test]
@@ -601,5 +612,102 @@ mod tests {
         let z = Point2D::zero();
         assert_eq!(z.x, 0.0);
         assert_eq!(z.y, 0.0);
+    }
+
+    #[test]
+    fn test_zoom_center_point_preservation() {
+        // Test that zooming preserves the data point under the cursor
+        let zoom = ZoomBehavior::new().scale_extent(0.1, 10.0);
+        let mut transform = ZoomTransform::new(1.0, 50.0, 30.0);
+
+        let cursor = (200.0, 150.0);
+
+        // Find data point under cursor before zoom
+        let data_before = transform.invert(cursor.0, cursor.1);
+
+        // Zoom in
+        zoom.handle_wheel(&mut transform, 500.0, cursor.0, cursor.1);
+
+        // Find data point under cursor after zoom
+        let data_after = transform.invert(cursor.0, cursor.1);
+
+        // Data point should be the same (within floating point tolerance)
+        assert!(
+            (data_before.0 - data_after.0).abs() < 1e-10,
+            "X data point changed: {} -> {}",
+            data_before.0,
+            data_after.0
+        );
+        assert!(
+            (data_before.1 - data_after.1).abs() < 1e-10,
+            "Y data point changed: {} -> {}",
+            data_before.1,
+            data_after.1
+        );
+    }
+
+    #[test]
+    fn test_zoom_center_preservation_multiple_zooms() {
+        // Test that multiple consecutive zooms preserve the center
+        let zoom = ZoomBehavior::new().scale_extent(0.1, 10.0);
+        let mut transform = ZoomTransform::identity();
+
+        let cursor = (300.0, 200.0);
+        let data_original = transform.invert(cursor.0, cursor.1);
+
+        // Multiple zoom operations
+        for _ in 0..10 {
+            zoom.handle_wheel(&mut transform, 50.0, cursor.0, cursor.1);
+        }
+        for _ in 0..5 {
+            zoom.handle_wheel(&mut transform, -100.0, cursor.0, cursor.1);
+        }
+
+        let data_after = transform.invert(cursor.0, cursor.1);
+
+        assert!(
+            (data_original.0 - data_after.0).abs() < 1e-9,
+            "X drifted: {} -> {}",
+            data_original.0,
+            data_after.0
+        );
+        assert!(
+            (data_original.1 - data_after.1).abs() < 1e-9,
+            "Y drifted: {} -> {}",
+            data_original.1,
+            data_after.1
+        );
+    }
+
+    #[test]
+    fn test_pinch_center_preservation() {
+        let zoom = ZoomBehavior::new().scale_extent(0.1, 10.0);
+        let mut transform = ZoomTransform::new(1.5, 100.0, 75.0);
+
+        let center = (250.0, 180.0);
+        let data_before = transform.invert(center.0, center.1);
+
+        zoom.handle_pinch(&mut transform, 1.5, center.0, center.1);
+
+        let data_after = transform.invert(center.0, center.1);
+
+        assert!((data_before.0 - data_after.0).abs() < 1e-10);
+        assert!((data_before.1 - data_after.1).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_zoom_to_center_preservation() {
+        let zoom = ZoomBehavior::new().scale_extent(0.1, 10.0);
+        let mut transform = ZoomTransform::new(2.0, 80.0, 60.0);
+
+        let center = (400.0, 300.0);
+        let data_before = transform.invert(center.0, center.1);
+
+        zoom.zoom_to(&mut transform, 3.5, center.0, center.1);
+
+        let data_after = transform.invert(center.0, center.1);
+
+        assert!((data_before.0 - data_after.0).abs() < 1e-10);
+        assert!((data_before.1 - data_after.1).abs() < 1e-10);
     }
 }

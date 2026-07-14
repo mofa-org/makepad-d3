@@ -69,12 +69,21 @@ impl<T> SequentialScale<T> {
     /// use makepad_d3::scale::SequentialScale;
     ///
     /// let scale = SequentialScale::new(|t| t)
-    ///     .domain(0.0, 100.0);
+    ///     .with_domain(0.0, 100.0);
     /// ```
-    pub fn domain(mut self, min: f64, max: f64) -> Self {
+    pub fn with_domain(mut self, min: f64, max: f64) -> Self {
         self.domain_min = min;
         self.domain_max = max;
         self
+    }
+
+    /// Set the input domain
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_domain` instead for consistent builder pattern"
+    )]
+    pub fn domain(self, min: f64, max: f64) -> Self {
+        self.with_domain(min, max)
     }
 
     /// Set the domain bounds
@@ -92,9 +101,18 @@ impl<T> SequentialScale<T> {
     ///
     /// When clamping is enabled, input values outside the domain
     /// are clamped to [0, 1] before interpolation.
-    pub fn clamp(mut self, clamp: bool) -> Self {
+    pub fn with_clamp(mut self, clamp: bool) -> Self {
         self.clamp = clamp;
         self
+    }
+
+    /// Enable or disable clamping
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_clamp` instead for consistent builder pattern"
+    )]
+    pub fn clamp(self, clamp: bool) -> Self {
+        self.with_clamp(clamp)
     }
 
     /// Set clamping
@@ -108,12 +126,24 @@ impl<T> SequentialScale<T> {
     }
 
     /// Set a new interpolator
-    pub fn interpolator<F>(mut self, interpolator: F) -> Self
+    pub fn with_interpolator<F>(mut self, interpolator: F) -> Self
     where
         F: Fn(f64) -> T + Send + Sync + 'static,
     {
         self.interpolator = Box::new(interpolator);
         self
+    }
+
+    /// Set a new interpolator
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_interpolator` instead for consistent builder pattern"
+    )]
+    pub fn interpolator<F>(self, interpolator: F) -> Self
+    where
+        F: Fn(f64) -> T + Send + Sync + 'static,
+    {
+        self.with_interpolator(interpolator)
     }
 
     /// Normalize a domain value to [0, 1]
@@ -186,9 +216,7 @@ impl Scale for SequentialScale<f64> {
 
         for i in 0..count {
             let value = self.domain_min + step * i as f64;
-            ticks.push(
-                Tick::new(value, format!("{:.2}", value)).with_position(value),
-            );
+            ticks.push(Tick::new(value, format!("{:.2}", value)).with_position(value));
         }
 
         ticks
@@ -226,21 +254,25 @@ pub mod interpolators {
 
     /// Linear interpolation for RGB colors (as [r, g, b] arrays)
     pub fn rgb(start: [f64; 3], end: [f64; 3]) -> impl Fn(f64) -> [f64; 3] + Send + Sync {
-        move |t| [
-            start[0] + t * (end[0] - start[0]),
-            start[1] + t * (end[1] - start[1]),
-            start[2] + t * (end[2] - start[2]),
-        ]
+        move |t| {
+            [
+                start[0] + t * (end[0] - start[0]),
+                start[1] + t * (end[1] - start[1]),
+                start[2] + t * (end[2] - start[2]),
+            ]
+        }
     }
 
     /// Linear interpolation for RGBA colors (as [r, g, b, a] arrays)
     pub fn rgba(start: [f64; 4], end: [f64; 4]) -> impl Fn(f64) -> [f64; 4] + Send + Sync {
-        move |t| [
-            start[0] + t * (end[0] - start[0]),
-            start[1] + t * (end[1] - start[1]),
-            start[2] + t * (end[2] - start[2]),
-            start[3] + t * (end[3] - start[3]),
-        ]
+        move |t| {
+            [
+                start[0] + t * (end[0] - start[0]),
+                start[1] + t * (end[1] - start[1]),
+                start[2] + t * (end[2] - start[2]),
+                start[3] + t * (end[3] - start[3]),
+            ]
+        }
     }
 
     /// Viridis-like color scheme (simplified approximation)
@@ -412,16 +444,14 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_domain() {
-        let scale = SequentialScale::new(|t| t)
-            .domain(0.0, 100.0);
+        let scale = SequentialScale::new(|t| t).domain(0.0, 100.0);
 
         assert_eq!(scale.get_domain(), (0.0, 100.0));
     }
 
     #[test]
     fn test_sequential_scale_interpolate() {
-        let scale = SequentialScale::new(|t| t * 100.0)
-            .domain(0.0, 100.0);
+        let scale = SequentialScale::new(|t| t * 100.0).domain(0.0, 100.0);
 
         assert!((scale.interpolate(0.0) - 0.0).abs() < 0.01);
         assert!((scale.interpolate(50.0) - 50.0).abs() < 0.01);
@@ -430,9 +460,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_clamp() {
-        let scale = SequentialScale::new(|t| t)
-            .domain(0.0, 100.0)
-            .clamp(true);
+        let scale = SequentialScale::new(|t| t).domain(0.0, 100.0).clamp(true);
 
         // Values outside domain should be clamped
         assert!((scale.interpolate(-50.0) - 0.0).abs() < 0.01);
@@ -441,9 +469,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_no_clamp() {
-        let scale = SequentialScale::new(|t| t)
-            .domain(0.0, 100.0)
-            .clamp(false);
+        let scale = SequentialScale::new(|t| t).domain(0.0, 100.0).clamp(false);
 
         // Values outside domain should extrapolate
         assert!((scale.interpolate(-50.0) - (-0.5)).abs() < 0.01);
@@ -463,8 +489,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_grayscale() {
-        let scale = SequentialScale::new(interpolators::grayscale())
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(interpolators::grayscale()).domain(0.0, 1.0);
 
         let black = scale.interpolate(0.0);
         let white = scale.interpolate(1.0);
@@ -477,65 +502,60 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_viridis() {
-        let scale = SequentialScale::new(interpolators::viridis())
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(interpolators::viridis()).domain(0.0, 1.0);
 
         let start = scale.interpolate(0.0);
         let end = scale.interpolate(1.0);
 
         // Viridis starts dark purple-ish and ends yellow-ish
         assert!(start[0] < 0.5); // Low red at start
-        assert!(end[1] > 0.5);   // High green at end (yellow)
+        assert!(end[1] > 0.5); // High green at end (yellow)
     }
 
     #[test]
     fn test_sequential_scale_cool() {
-        let scale = SequentialScale::new(interpolators::cool())
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(interpolators::cool()).domain(0.0, 1.0);
 
         let start = scale.interpolate(0.0);
         let end = scale.interpolate(1.0);
 
         // Cool goes from cyan to magenta
-        assert!((start[0]).abs() < 0.01);     // Start: r=0 (cyan)
+        assert!((start[0]).abs() < 0.01); // Start: r=0 (cyan)
         assert!((start[1] - 1.0).abs() < 0.01); // Start: g=1 (cyan)
-        assert!((end[0] - 1.0).abs() < 0.01);   // End: r=1 (magenta)
-        assert!((end[1]).abs() < 0.01);         // End: g=0 (magenta)
+        assert!((end[0] - 1.0).abs() < 0.01); // End: r=1 (magenta)
+        assert!((end[1]).abs() < 0.01); // End: g=0 (magenta)
     }
 
     #[test]
     fn test_sequential_scale_warm() {
-        let scale = SequentialScale::new(interpolators::warm())
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(interpolators::warm()).domain(0.0, 1.0);
 
         let start = scale.interpolate(0.0);
         let end = scale.interpolate(1.0);
 
         // Warm goes from red to yellow
         assert!((start[0] - 1.0).abs() < 0.01); // Start: r=1 (red)
-        assert!((start[1]).abs() < 0.01);       // Start: g=0 (red)
-        assert!((end[0] - 1.0).abs() < 0.01);   // End: r=1 (yellow)
-        assert!((end[1] - 1.0).abs() < 0.01);   // End: g=1 (yellow)
+        assert!((start[1]).abs() < 0.01); // Start: g=0 (red)
+        assert!((end[0] - 1.0).abs() < 0.01); // End: r=1 (yellow)
+        assert!((end[1] - 1.0).abs() < 0.01); // End: g=1 (yellow)
     }
 
     #[test]
     fn test_sequential_scale_blues() {
-        let scale = SequentialScale::new(interpolators::blues())
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(interpolators::blues()).domain(0.0, 1.0);
 
         let start = scale.interpolate(0.0);
         let end = scale.interpolate(1.0);
 
         // Blues goes from light blue to dark blue
         assert!(start[2] > 0.9); // High blue at start
-        assert!(end[2] > 0.5);   // Still blue at end
+        assert!(end[2] > 0.5); // Still blue at end
         assert!(start[0] > end[0]); // Less red at end (darker)
     }
 
     #[test]
     fn test_sequential_scale_rainbow() {
-        let scale = SequentialScale::new(interpolators::rainbow())
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(interpolators::rainbow()).domain(0.0, 1.0);
 
         let red = scale.interpolate(0.0);
         let green = scale.interpolate(0.33);
@@ -549,8 +569,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_f64_scale_trait() {
-        let scale = SequentialScale::new(|t| t * 100.0)
-            .domain(0.0, 100.0);
+        let scale = SequentialScale::new(|t| t * 100.0).domain(0.0, 100.0);
 
         assert_eq!(scale.scale_type(), "sequential");
         assert_eq!(Scale::domain(&scale), (0.0, 100.0));
@@ -560,8 +579,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_ticks() {
-        let scale = SequentialScale::new(|t| t)
-            .domain(0.0, 100.0);
+        let scale = SequentialScale::new(|t| t).domain(0.0, 100.0);
 
         let ticks = scale.ticks(&TickOptions::new().with_count(5));
         assert_eq!(ticks.len(), 5);
@@ -571,8 +589,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_clone_box() {
-        let scale = SequentialScale::new(|t| t * 10.0)
-            .domain(0.0, 100.0);
+        let scale = SequentialScale::new(|t| t * 10.0).domain(0.0, 100.0);
 
         let boxed: Box<dyn Scale> = scale.clone_box();
         assert_eq!(boxed.scale_type(), "sequential");
@@ -588,10 +605,7 @@ mod tests {
 
     #[test]
     fn test_rgba_interpolator() {
-        let interp = interpolators::rgba(
-            [0.0, 0.0, 0.0, 0.0],
-            [1.0, 1.0, 1.0, 1.0]
-        );
+        let interp = interpolators::rgba([0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0]);
 
         let mid = interp(0.5);
         assert!((mid[0] - 0.5).abs() < 0.01);
@@ -601,8 +615,7 @@ mod tests {
     #[test]
     fn test_sequential_scale_custom_interpolator() {
         // Custom interpolator: quadratic ease-in
-        let scale = SequentialScale::new(|t| t * t)
-            .domain(0.0, 1.0);
+        let scale = SequentialScale::new(|t| t * t).domain(0.0, 1.0);
 
         assert!((scale.interpolate(0.0) - 0.0).abs() < 0.01);
         assert!((scale.interpolate(0.5) - 0.25).abs() < 0.01); // 0.5^2 = 0.25
@@ -611,8 +624,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_negative_domain() {
-        let scale = SequentialScale::new(|t| t)
-            .domain(-100.0, 100.0);
+        let scale = SequentialScale::new(|t| t).domain(-100.0, 100.0);
 
         assert!((scale.interpolate(-100.0) - 0.0).abs() < 0.01);
         assert!((scale.interpolate(0.0) - 0.5).abs() < 0.01);
@@ -621,8 +633,7 @@ mod tests {
 
     #[test]
     fn test_sequential_scale_inverted_domain() {
-        let scale = SequentialScale::new(|t| t)
-            .domain(100.0, 0.0);
+        let scale = SequentialScale::new(|t| t).domain(100.0, 0.0);
 
         // With inverted domain, 0 maps to 1 and 100 maps to 0
         assert!((scale.interpolate(0.0) - 1.0).abs() < 0.01);

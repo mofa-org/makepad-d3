@@ -44,56 +44,38 @@
 //! let event = source.poll();
 //! ```
 
-mod point;
-mod dataset;
 mod chart_data;
-mod source;
+mod dataset;
 mod observable;
-mod streaming;
-mod polling;
 mod pipeline;
+mod point;
+mod polling;
+mod source;
+mod streaming;
 
 // Core data structures
-pub use point::DataPoint;
-pub use dataset::{Dataset, PointStyle, Color};
 pub use chart_data::ChartData;
+pub use dataset::{Color, Dataset, PointStyle};
+pub use point::DataPoint;
 
 // Data source traits and types
 pub use source::{
-    DataSource,
-    DataSourceEvent,
-    DataSourceState,
-    DataSourceConfig,
-    BufferedDataSource,
+    BufferedDataSource, DataSource, DataSourceConfig, DataSourceEvent, DataSourceState,
     MultiSeriesDataSource,
 };
 
 // Observable dataset
-pub use observable::{
-    ObservableDataset,
-    DataChange,
-};
+pub use observable::{DataChange, ObservableDataset};
 
 // Streaming data source
 pub use streaming::{
-    StreamingDataSource,
-    StreamMessage,
-    SharedStreamingSource,
-    StreamingSourceBuilder,
+    SharedStreamingSource, StreamMessage, StreamingDataSource, StreamingSourceBuilder,
 };
 
 // Polling data source
 pub use polling::{
-    PollingDataSource,
-    PollingConfig,
-    PollingStrategy,
-    PollingState,
-    PollingSourceBuilder,
+    PollingConfig, PollingDataSource, PollingSourceBuilder, PollingState, PollingStrategy,
 };
 
 // Data pipeline
-pub use pipeline::{
-    DataPipeline,
-    Transform,
-    Aggregation,
-};
+pub use pipeline::{Aggregation, DataPipeline, Transform};

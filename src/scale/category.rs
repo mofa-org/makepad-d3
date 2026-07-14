@@ -1,6 +1,6 @@
 //! Category scale implementation
 
-use super::traits::{Scale, DiscreteScale, Tick, TickOptions};
+use super::traits::{DiscreteScale, Scale, Tick, TickOptions};
 
 /// Scale for categorical/discrete data
 ///
@@ -296,8 +296,7 @@ mod tests {
 
     #[test]
     fn test_category_scale_with_labels() {
-        let scale = CategoryScale::new()
-            .with_labels(vec!["A", "B", "C", "D"]);
+        let scale = CategoryScale::new().with_labels(vec!["A", "B", "C", "D"]);
 
         assert_eq!(scale.len(), 4);
         assert_eq!(scale.label(0), Some("A"));
@@ -373,8 +372,7 @@ mod tests {
 
     #[test]
     fn test_category_scale_index_of() {
-        let scale = CategoryScale::new()
-            .with_labels(vec!["Apple", "Banana", "Cherry"]);
+        let scale = CategoryScale::new().with_labels(vec!["Apple", "Banana", "Cherry"]);
 
         assert_eq!(scale.index_of("Apple"), Some(0));
         assert_eq!(scale.index_of("Banana"), Some(1));

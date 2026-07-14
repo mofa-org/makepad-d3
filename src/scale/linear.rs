@@ -1,7 +1,7 @@
 //! Linear scale implementation
 
-use super::traits::{Scale, ContinuousScale, ScaleExt, Tick, TickOptions};
-use super::utils::{nice_step, nice_bounds, format_number};
+use super::traits::{ContinuousScale, Scale, ScaleExt, Tick, TickOptions};
+use super::utils::{format_number, nice_bounds, nice_step};
 
 /// Linear scale for continuous numeric data
 ///
@@ -140,9 +140,9 @@ impl Scale for LinearScale {
         let span = self.domain_max - self.domain_min;
 
         // Determine step size
-        let step = options.step_size.unwrap_or_else(|| {
-            nice_step(span.abs(), options.count)
-        });
+        let step = options
+            .step_size
+            .unwrap_or_else(|| nice_step(span.abs(), options.count));
 
         if step <= 0.0 {
             return vec![];
@@ -157,14 +157,17 @@ impl Scale for LinearScale {
         // Add min bound if requested
         if options.include_bounds && start > self.domain_min + epsilon {
             let pos = self.scale(self.domain_min);
-            ticks.push(Tick::new(self.domain_min, format_number(self.domain_min)).with_position(pos));
+            ticks.push(
+                Tick::new(self.domain_min, format_number(self.domain_min)).with_position(pos),
+            );
         }
 
         // Generate ticks
         let mut value = start;
         while value <= self.domain_max + epsilon && ticks.len() < options.max_count {
             // Skip if too close to previous
-            let skip = ticks.last()
+            let skip = ticks
+                .last()
                 .map(|t| (t.value - value).abs() < epsilon)
                 .unwrap_or(false);
 
@@ -180,7 +183,9 @@ impl Scale for LinearScale {
             let last_value = ticks.last().map(|t| t.value).unwrap_or(f64::MIN);
             if (self.domain_max - last_value).abs() > epsilon {
                 let pos = self.scale(self.domain_max);
-                ticks.push(Tick::new(self.domain_max, format_number(self.domain_max)).with_position(pos));
+                ticks.push(
+                    Tick::new(self.domain_max, format_number(self.domain_max)).with_position(pos),
+                );
             }
         }
 
@@ -286,8 +291,7 @@ mod tests {
 
     #[test]
     fn test_linear_scale_nice() {
-        let mut scale = LinearScale::new()
-            .with_domain(3.2, 97.8);
+        let mut scale = LinearScale::new().with_domain(3.2, 97.8);
         scale.nice();
 
         assert_eq!(scale.domain(), (0.0, 100.0));
@@ -295,9 +299,7 @@ mod tests {
 
     #[test]
     fn test_linear_scale_with_zero() {
-        let scale = LinearScale::new()
-            .with_domain(50.0, 100.0)
-            .with_zero();
+        let scale = LinearScale::new().with_domain(50.0, 100.0).with_zero();
 
         assert_eq!(scale.domain(), (0.0, 100.0));
     }

@@ -200,7 +200,10 @@ impl StackGenerator {
             .iter()
             .enumerate()
             .map(|(i, _)| {
-                let key = keys.get(i).cloned().unwrap_or_else(|| format!("series_{}", i));
+                let key = keys
+                    .get(i)
+                    .cloned()
+                    .unwrap_or_else(|| format!("series_{}", i));
                 StackedSeries::new(key, i, n_points)
             })
             .collect();
@@ -337,10 +340,7 @@ impl StackGenerator {
     /// Normalize to [0, 1] range
     fn apply_expand_offset(&self, series: &mut [StackedSeries], n_points: usize) {
         for i in 0..n_points {
-            let total: f64 = series
-                .iter()
-                .map(|s| s.points[i].height())
-                .sum();
+            let total: f64 = series.iter().map(|s| s.points[i].height()).sum();
 
             if total > 0.0 {
                 for s in series.iter_mut() {
@@ -354,10 +354,7 @@ impl StackGenerator {
     /// Center around zero
     fn apply_diverging_offset(&self, series: &mut [StackedSeries], n_points: usize) {
         for i in 0..n_points {
-            let total: f64 = series
-                .iter()
-                .map(|s| s.points[i].height())
-                .sum();
+            let total: f64 = series.iter().map(|s| s.points[i].height()).sum();
 
             let offset = -total / 2.0;
             for s in series.iter_mut() {
@@ -475,8 +472,14 @@ mod tests {
 
         // Stacks should be centered around 0
         for i in 0..4 {
-            let min_y0 = result.iter().map(|s| s.points[i].y0).fold(f64::INFINITY, f64::min);
-            let max_y1 = result.iter().map(|s| s.points[i].y1).fold(f64::NEG_INFINITY, f64::max);
+            let min_y0 = result
+                .iter()
+                .map(|s| s.points[i].y0)
+                .fold(f64::INFINITY, f64::min);
+            let max_y1 = result
+                .iter()
+                .map(|s| s.points[i].y1)
+                .fold(f64::NEG_INFINITY, f64::max);
             let center = (min_y0 + max_y1) / 2.0;
             assert!(center.abs() < 0.01);
         }
@@ -496,10 +499,7 @@ mod tests {
 
     #[test]
     fn test_stack_from_values() {
-        let values = vec![
-            vec![10.0, 20.0, 15.0],
-            vec![15.0, 25.0, 20.0],
-        ];
+        let values = vec![vec![10.0, 20.0, 15.0], vec![15.0, 25.0, 20.0]];
         let keys = vec!["A".to_string(), "B".to_string()];
 
         let stack = StackGenerator::new();

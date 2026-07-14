@@ -69,6 +69,14 @@ pub mod contour_chart;
 pub mod quiver_chart;
 pub mod surface_plot;
 pub mod apollonius_problem;
+pub mod voronoi_stippling;
+
+// 3D Charts
+pub mod scatter3d_chart;
+pub mod bar3d_chart;
+
+// Color Space Demos
+pub mod color_interpolation;
 
 pub use draw_primitives::*;
 pub use axis_renderer::*;
@@ -114,6 +122,10 @@ pub use contour_chart::*;
 pub use quiver_chart::*;
 pub use surface_plot::*;
 pub use apollonius_problem::*;
+pub use voronoi_stippling::*;
+pub use scatter3d_chart::*;
+pub use bar3d_chart::*;
+pub use color_interpolation::*;
 
 /// Register all chart widget live designs
 pub fn live_design(cx: &mut Cx) {
@@ -161,4 +173,8 @@ pub fn live_design(cx: &mut Cx) {
     quiver_chart::live_design(cx);
     surface_plot::live_design(cx);
     apollonius_problem::live_design(cx);
+    voronoi_stippling::live_design(cx);
+    scatter3d_chart::live_design(cx);
+    bar3d_chart::live_design(cx);
+    color_interpolation::live_design(cx);
 }

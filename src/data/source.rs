@@ -21,7 +21,7 @@
 //! }
 //! ```
 
-use super::{DataPoint, Dataset, ChartData};
+use super::{ChartData, DataPoint, Dataset};
 use std::collections::VecDeque;
 
 /// Events emitted by data sources
@@ -30,7 +30,10 @@ pub enum DataSourceEvent {
     /// New data point(s) appended
     Append(Vec<DataPoint>),
     /// Data point(s) updated at index
-    Update { index: usize, points: Vec<DataPoint> },
+    Update {
+        index: usize,
+        points: Vec<DataPoint>,
+    },
     /// Data point(s) removed at index
     Remove { index: usize, count: usize },
     /// Complete data replacement
@@ -240,14 +243,16 @@ impl BufferedDataSource {
                 self.data[index + i] = point.clone();
             }
         }
-        self.events.push_back(DataSourceEvent::Update { index, points });
+        self.events
+            .push_back(DataSourceEvent::Update { index, points });
     }
 
     /// Remove data at index
     pub fn remove(&mut self, index: usize, count: usize) {
         let end = (index + count).min(self.data.len());
         self.data.drain(index..end);
-        self.events.push_back(DataSourceEvent::Remove { index, count });
+        self.events
+            .push_back(DataSourceEvent::Remove { index, count });
     }
 
     /// Clear all data
@@ -349,7 +354,11 @@ impl MultiSeriesDataSource {
     }
 
     /// Add a series with config
-    pub fn add_series_with_config(&mut self, label: impl Into<String>, config: DataSourceConfig) -> usize {
+    pub fn add_series_with_config(
+        &mut self,
+        label: impl Into<String>,
+        config: DataSourceConfig,
+    ) -> usize {
         let index = self.series.len();
         self.series.push(BufferedDataSource::with_config(config));
         self.labels.push(label.into());

@@ -1,7 +1,7 @@
 //! Time scale implementation
 
-use super::traits::{Scale, ContinuousScale, Tick, TickOptions};
-use chrono::{DateTime, Utc, Duration, Datelike, Timelike};
+use super::traits::{ContinuousScale, Scale, Tick, TickOptions};
+use chrono::{DateTime, Datelike, Duration, Timelike, Utc};
 
 /// Time interval for tick generation
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -167,10 +167,8 @@ impl TimeScale {
 
     /// Set the time domain from timestamps (milliseconds since epoch)
     pub fn with_domain_ms(mut self, start_ms: i64, end_ms: i64) -> Self {
-        self.domain_start = DateTime::from_timestamp_millis(start_ms)
-            .unwrap_or_else(Utc::now);
-        self.domain_end = DateTime::from_timestamp_millis(end_ms)
-            .unwrap_or_else(Utc::now);
+        self.domain_start = DateTime::from_timestamp_millis(start_ms).unwrap_or_else(Utc::now);
+        self.domain_end = DateTime::from_timestamp_millis(end_ms).unwrap_or_else(Utc::now);
         self
     }
 
@@ -259,7 +257,9 @@ impl TimeScale {
         }
 
         let interval = TimeInterval::for_duration(duration_ms, options.count);
-        let format = self.format.as_deref()
+        let format = self
+            .format
+            .as_deref()
             .unwrap_or_else(|| interval.default_format());
 
         let mut ticks = Vec::new();
@@ -387,10 +387,9 @@ impl TimeScale {
                     .and_then(|t| t.with_month(new_month))
                     .unwrap_or(time + Duration::days(30 * n as i64))
             }
-            TimeInterval::Year(n) => {
-                time.with_year(time.year() + n as i32)
-                    .unwrap_or(time + Duration::days(365 * n as i64))
-            }
+            TimeInterval::Year(n) => time
+                .with_year(time.year() + n as i32)
+                .unwrap_or(time + Duration::days(365 * n as i64)),
         }
     }
 }
@@ -408,10 +407,8 @@ impl Scale for TimeScale {
 
     fn set_domain(&mut self, min: f64, max: f64) {
         // Interpret as milliseconds since epoch
-        self.domain_start = DateTime::from_timestamp_millis(min as i64)
-            .unwrap_or_else(Utc::now);
-        self.domain_end = DateTime::from_timestamp_millis(max as i64)
-            .unwrap_or_else(Utc::now);
+        self.domain_start = DateTime::from_timestamp_millis(min as i64).unwrap_or_else(Utc::now);
+        self.domain_end = DateTime::from_timestamp_millis(max as i64).unwrap_or_else(Utc::now);
     }
 
     fn set_range(&mut self, start: f64, end: f64) {
@@ -432,8 +429,7 @@ impl Scale for TimeScale {
 
     fn scale(&self, value: f64) -> f64 {
         // Value is milliseconds since epoch
-        let time = DateTime::from_timestamp_millis(value as i64)
-            .unwrap_or(self.domain_start);
+        let time = DateTime::from_timestamp_millis(value as i64).unwrap_or(self.domain_start);
         self.scale_time(time)
     }
 
@@ -470,10 +466,8 @@ impl ContinuousScale for TimeScale {
     fn nice(&mut self) {
         let interval = TimeInterval::for_duration(self.duration_ms().abs(), 10);
         self.domain_start = self.floor_to_interval(self.domain_start, interval);
-        self.domain_end = self.add_interval(
-            self.floor_to_interval(self.domain_end, interval),
-            interval
-        );
+        self.domain_end =
+            self.add_interval(self.floor_to_interval(self.domain_end, interval), interval);
     }
 
     fn is_clamped(&self) -> bool {
@@ -566,7 +560,7 @@ mod tests {
 
         // Ticks should be in order
         for i in 1..ticks.len() {
-            assert!(ticks[i].time > ticks[i-1].time);
+            assert!(ticks[i].time > ticks[i - 1].time);
         }
     }
 

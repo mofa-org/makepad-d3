@@ -2,15 +2,154 @@
 
 A D3.js-compatible data visualization library for [Makepad](https://github.com/makepad/makepad)'s GPU-accelerated rendering.
 
+> **Makepad 2.0 / Splash status (2026-07):** This library now targets
+> **Makepad 2.0**, whose Script/**Splash** runtime replaced the old Live
+> system (`live_design!`). makepad-d3 registers a scriptable **`d3.*`
+> widget namespace** into the Splash VM, so charts can be written directly
+> in Splash DSL — including inside sandboxed `runsplash`-style mini apps
+> via the `d3.Splash` host widget. Design + migration record:
+> [`docs/SPLASH_INTEGRATION_DESIGN.md`](docs/SPLASH_INTEGRATION_DESIGN.md).
+
 ## Quick Run
 
+Makepad 2.0 is consumed as a **sibling path dependency** (its repo vendors a
+pre-2.0 crate copy under `old/`, which makes git dependencies ambiguous):
+
 ```bash
+git clone https://github.com/makepad/makepad.git --branch dev   # sibling checkout
 git clone https://github.com/mofa-org/makepad-d3.git
 cd makepad-d3
-cargo run --example chart_zoo
+cargo run --example splash_demo
 ```
 
-This launches the Chart Zoo with 40+ interactive chart types including Bar, Line, Pie, Sankey, Force Graph, Treemap, Globe Map, and more.
+This opens a dashboard whose entire UI is Splash DSL: `d3.BarChart`,
+`d3.PieChart`, `d3.LineChart`, `d3.ScatterChart` with declarative `data:`,
+script-driven `ui.chart.set_data(...)` buttons, `on_click`/`on_hover`
+closures, and a sandboxed `d3.Splash` isolate running its own splash body.
+
+## Using d3 charts from Splash DSL
+
+### 1. Register the `d3.*` namespace (one line of Rust)
+
+```rust
+use makepad_widgets::*;
+
+app_main!(App);
+
+#[derive(Script, ScriptHook)]
+pub struct App {
+    #[live] ui: WidgetRef,
+}
+
+impl AppMain for App {
+    fn script_mod(vm: &mut ScriptVm) -> ScriptValue {
+        makepad_widgets::script_mod(vm);
+        makepad_d3::script_mod(vm);      // <- adds the d3.* namespace
+        self::script_mod(vm)             // your app's script_mod! block
+    }
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
+        self.ui.handle_event(cx, event, &mut Scope::empty());
+    }
+}
+```
+
+`makepad_d3::script_mod` also injects `d3` into the widgets prelude, so any
+scope that starts with `use mod.prelude.widgets.*` (which includes every
+`Splash`-hosted body) can write `d3.BarChart{...}` with no extra imports.
+
+### 2. The chart widgets
+
+All charts share the same contract — declarative props, script methods, and
+event closures:
+
+| Widget | `data:` shape | Extra props |
+|---|---|---|
+| `d3.BarChart` | `[v v v ...]` + `labels: ["a" "b" ...]` | `bar_color`, `hover_color` |
+| `d3.LineChart` | numbers, `[[x y], ...]`, or `[{x:.. y:..}, ...]` | `line_color`, `line_width`, `dot_color`, `dot_radius` |
+| `d3.AreaChart` | same as LineChart | `line_color`, `line_width`, `fill_color` |
+| `d3.ScatterChart` | same as LineChart | `dot_color`, `hover_color`, `dot_radius` |
+| `d3.PieChart` | `[v v v ...]` + `labels:` | `inner_radius` (0–0.95, donut hole; slices use d3 Category10) |
+
+Shared props: `width`/`height`, `plot_margin: Inset{...}`, `grid_color`,
+`label_color`. A chart with no `data:` renders a small demo dataset.
+
+**Script methods** (call on a `:=` id via `ui.`):
+
+| Method | Effect |
+|---|---|
+| `ui.chart.set_data(values)` | replace the data, refit, redraw |
+| `ui.chart.set_labels(labels)` | replace category/slice labels |
+| `ui.chart.set_domain(min, max)` | pin the y-domain (disables auto-fit) |
+| `ui.chart.data()` | read the values back as a script array |
+
+**Events** — closures receive the mark index:
+
+```splash
+d3.BarChart{
+    on_click: |i| ui.status.set_text("clicked bar " + i)
+    on_hover: |i| ui.status.set_text("hovering " + i)
+}
+```
+
+### 3. A complete Splash snippet
+
+```splash
+View{ width: Fill height: Fit flow: Down spacing: 10
+    chart := d3.BarChart{
+        height: 300
+        data: [30 86 168 281 303 365]
+        labels: ["Jan" "Feb" "Mar" "Apr" "May" "Jun"]
+        on_click: |i| ui.status.set_text("clicked bar " + i)
+    }
+    View{ width: Fill height: Fit flow: Right spacing: 10
+        Button{text: "Update" on_click: || ui.chart.set_data([2 7 1 8 2 8])}
+        Button{text: "Pin 0..400" on_click: || ui.chart.set_domain(0, 400)}
+        status := Label{text: "-"}
+    }
+    // x/y charts take pairs or objects — note the commas between pairs
+    d3.LineChart{ height: 260 data: [[0 5], [1 18], [2 12], [3 40]] }
+}
+```
+
+### 4. Sandboxed splash apps (`d3.Splash`)
+
+Stock `runsplash` sandboxes only see the built-in widgets. `d3.Splash` is a
+drop-in host that evaluates a body string in an **isolated script VM with
+`d3.*` registered** — feed it from Rust exactly like the Markdown widget
+streams ```` ```runsplash ```` fences:
+
+```splash
+host := d3.Splash{ width: Fill height: Fit }
+```
+
+```rust
+// e.g. in MatchEvent::handle_startup, or as a markdown code-block template
+if let Some(mut host) = self.ui.widget(cx, ids!(host))
+    .borrow_mut::<makepad_d3::splash::D3Splash>()
+{
+    host.set_text(cx, "flow: Right spacing: 12 \
+        d3.PieChart{width: 240 height: 180 data: [4 3 2 1]} \
+        d3.AreaChart{width: Fill height: 180 data: [3 7 4 9 6 12 8]}");
+}
+```
+
+Sandbox notes: inline `on_click` handlers can use `ui.`, but body-level
+helper `fn`s cannot (no `ui` global — needs a makepad-side hook, see design
+doc §8.3/§14); networking is off; the body is prefixed with
+`View{height:Fit, ` so it starts with properties/children of that view.
+
+### 5. Gotchas
+
+- **Nested array literals need commas**: `[[0 5], [1 18]]` — adjacent
+  `[..] [..]` parses as indexing.
+- **Put fixed-size charts before `Fill` siblings** in a `flow: Right` row,
+  otherwise the deferred `Fill` child resolves after the fixed one drew and
+  they overlap.
+- Known upstream gap: `DrawText::draw_abs` (axis/slice labels) does not
+  render on the current makepad dev tip — the built-in `mod.widgets` charts
+  have the same behavior; grids, marks, and `Label` widgets are unaffected.
+- The pre-2.0 Chart Zoo (40+ charts) is the porting backlog and does not
+  compile against 2.0 yet (`docs/SPLASH_INTEGRATION_DESIGN.md` §11 Phase 4).
 
 ## Features
 

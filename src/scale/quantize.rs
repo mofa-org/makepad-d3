@@ -59,13 +59,22 @@ impl<T: Clone> QuantizeScale<T> {
     /// use makepad_d3::scale::QuantizeScale;
     ///
     /// let scale: QuantizeScale<&str> = QuantizeScale::new()
-    ///     .domain(0.0, 100.0);
+    ///     .with_domain(0.0, 100.0);
     /// ```
-    pub fn domain(mut self, min: f64, max: f64) -> Self {
+    pub fn with_domain(mut self, min: f64, max: f64) -> Self {
         self.domain_min = min;
         self.domain_max = max;
         self.rescale();
         self
+    }
+
+    /// Set the continuous input domain (deprecated)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_domain` instead for consistent builder pattern"
+    )]
+    pub fn domain(self, min: f64, max: f64) -> Self {
+        self.with_domain(min, max)
     }
 
     /// Set the domain bounds
@@ -90,13 +99,22 @@ impl<T: Clone> QuantizeScale<T> {
     /// use makepad_d3::scale::QuantizeScale;
     ///
     /// let scale = QuantizeScale::new()
-    ///     .domain(0.0, 100.0)
-    ///     .range(vec!["cold", "warm", "hot"]);
+    ///     .with_domain(0.0, 100.0)
+    ///     .with_range(vec!["cold", "warm", "hot"]);
     /// ```
-    pub fn range(mut self, values: Vec<T>) -> Self {
+    pub fn with_range(mut self, values: Vec<T>) -> Self {
         self.range_values = values;
         self.rescale();
         self
+    }
+
+    /// Set the discrete output range values (deprecated)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_range` instead for consistent builder pattern"
+    )]
+    pub fn range(self, values: Vec<T>) -> Self {
+        self.with_range(values)
     }
 
     /// Set the range values
@@ -287,7 +305,11 @@ impl Scale for QuantizeScale<f64> {
 
     fn invert(&self, value: f64) -> f64 {
         // Find which range value this is and return the midpoint of its extent
-        if let Some(index) = self.range_values.iter().position(|&v| (v - value).abs() < f64::EPSILON) {
+        if let Some(index) = self
+            .range_values
+            .iter()
+            .position(|&v| (v - value).abs() < f64::EPSILON)
+        {
             let (x0, x1) = self.invert_extent(index);
             (x0 + x1) / 2.0
         } else {
@@ -301,21 +323,26 @@ impl Scale for QuantizeScale<f64> {
 
         // Include domain bounds if requested
         if options.include_bounds {
-            ticks.push(Tick::new(self.domain_min, format!("{:.2}", self.domain_min))
-                .with_position(self.domain_min));
+            ticks.push(
+                Tick::new(self.domain_min, format!("{:.2}", self.domain_min))
+                    .with_position(self.domain_min),
+            );
         }
 
         for (i, &threshold) in self.thresholds.iter().enumerate() {
             if ticks.len() < options.max_count {
-                ticks.push(Tick::new(threshold, format!("{:.2}", threshold))
-                    .with_position(threshold));
+                ticks.push(
+                    Tick::new(threshold, format!("{:.2}", threshold)).with_position(threshold),
+                );
             }
             let _ = i; // suppress unused warning
         }
 
         if options.include_bounds && ticks.len() < options.max_count {
-            ticks.push(Tick::new(self.domain_max, format!("{:.2}", self.domain_max))
-                .with_position(self.domain_max));
+            ticks.push(
+                Tick::new(self.domain_max, format!("{:.2}", self.domain_max))
+                    .with_position(self.domain_max),
+            );
         }
 
         ticks
@@ -453,9 +480,7 @@ mod tests {
 
     #[test]
     fn test_quantize_scale_single_value() {
-        let scale = QuantizeScale::new()
-            .domain(0.0, 100.0)
-            .range(vec!["only"]);
+        let scale = QuantizeScale::new().domain(0.0, 100.0).range(vec!["only"]);
 
         // Single value: everything maps to it
         assert_eq!(scale.thresholds().len(), 0);
@@ -466,8 +491,7 @@ mod tests {
 
     #[test]
     fn test_quantize_scale_empty_range() {
-        let scale: QuantizeScale<&str> = QuantizeScale::new()
-            .domain(0.0, 100.0);
+        let scale: QuantizeScale<&str> = QuantizeScale::new().domain(0.0, 100.0);
 
         assert!(scale.is_empty());
         assert_eq!(scale.scale_to_value(50.0), None);
@@ -568,12 +592,9 @@ mod tests {
     #[test]
     fn test_quantize_scale_colors() {
         // Common use case: mapping values to color indices
-        let scale = QuantizeScale::new()
-            .domain(0.0, 1.0)
-            .range(vec![
-                "#f7fbff", "#deebf7", "#c6dbef", "#9ecae1",
-                "#6baed6", "#4292c6", "#2171b5", "#084594"
-            ]);
+        let scale = QuantizeScale::new().domain(0.0, 1.0).range(vec![
+            "#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#084594",
+        ]);
 
         assert_eq!(scale.scale_to_value(0.0), Some(&"#f7fbff"));
         assert_eq!(scale.scale_to_value(0.5), Some(&"#6baed6"));

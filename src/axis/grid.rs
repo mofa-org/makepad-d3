@@ -263,10 +263,7 @@ pub struct GridLine {
 impl GridConfig {
     /// Light gray dashed grid
     pub fn light_dashed() -> Self {
-        Self::new()
-            .enabled()
-            .dashed()
-            .with_color(0.9, 0.9, 0.9)
+        Self::new().enabled().dashed().with_color(0.9, 0.9, 0.9)
     }
 
     /// Subtle dotted grid

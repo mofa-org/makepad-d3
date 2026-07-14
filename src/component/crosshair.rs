@@ -474,9 +474,11 @@ impl Crosshair {
             CrosshairMode::Vertical | CrosshairMode::Both => {
                 let mut line = CrosshairLine::vertical(x, by, by + bh);
                 if self.labels.visible {
-                    let label = self.labels.x_format.clone().unwrap_or_else(|| {
-                        format!("{:.1}", x - bx)
-                    });
+                    let label = self
+                        .labels
+                        .x_format
+                        .clone()
+                        .unwrap_or_else(|| format!("{:.1}", x - bx));
                     let label_y = match self.labels.vertical_position {
                         LabelPosition::Start => by,
                         LabelPosition::End => by + bh,
@@ -494,9 +496,11 @@ impl Crosshair {
             CrosshairMode::Horizontal | CrosshairMode::Both => {
                 let mut line = CrosshairLine::horizontal(y, bx, bx + bw);
                 if self.labels.visible {
-                    let label = self.labels.y_format.clone().unwrap_or_else(|| {
-                        format!("{:.1}", y - by)
-                    });
+                    let label = self
+                        .labels
+                        .y_format
+                        .clone()
+                        .unwrap_or_else(|| format!("{:.1}", y - by));
                     let label_x = match self.labels.horizontal_position {
                         LabelPosition::Start => bx,
                         LabelPosition::End => bx + bw,

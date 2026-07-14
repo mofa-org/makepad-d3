@@ -299,7 +299,8 @@ impl Legend {
         color: Rgba,
         symbol: LegendSymbol,
     ) -> Self {
-        self.items.push(LegendItem::new(label, color).with_symbol(symbol));
+        self.items
+            .push(LegendItem::new(label, color).with_symbol(symbol));
         self
     }
 

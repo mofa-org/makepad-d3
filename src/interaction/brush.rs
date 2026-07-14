@@ -49,7 +49,12 @@ impl BrushSelection {
 
     /// Create a selection from a single point (zero-size)
     pub fn from_point(x: f64, y: f64) -> Self {
-        Self { x0: x, y0: y, x1: x, y1: y }
+        Self {
+            x0: x,
+            y0: y,
+            x1: x,
+            y1: y,
+        }
     }
 
     /// Create a selection from center and size
@@ -251,11 +256,17 @@ impl BrushBehavior {
     }
 
     /// Create an X-axis only brush
+    ///
+    /// Note: For X-axis brushes, you should set an extent using `with_extent()`
+    /// so the brush knows the full height of the selection area.
     pub fn x() -> Self {
         Self::new(BrushType::X)
     }
 
     /// Create a Y-axis only brush
+    ///
+    /// Note: For Y-axis brushes, you should set an extent using `with_extent()`
+    /// so the brush knows the full width of the selection area.
     pub fn y() -> Self {
         Self::new(BrushType::Y)
     }
@@ -266,9 +277,31 @@ impl BrushBehavior {
     }
 
     /// Set the brush extent (bounds)
+    ///
+    /// The extent defines the area where the brush can operate.
+    /// For X and Y brush types, the extent also defines the span
+    /// of the non-brushed dimension.
+    ///
+    /// **Important**: Setting an extent is required for `BrushType::X` and
+    /// `BrushType::Y` to function correctly.
     pub fn with_extent(mut self, x0: f64, y0: f64, x1: f64, y1: f64) -> Self {
         self.extent = Some(BrushSelection::new(x0, y0, x1, y1));
         self
+    }
+
+    /// Check if the brush is properly configured
+    ///
+    /// Returns `false` if the brush type requires an extent but none is set.
+    pub fn is_valid(&self) -> bool {
+        match self.brush_type {
+            BrushType::X | BrushType::Y => self.extent.is_some(),
+            BrushType::XY => true,
+        }
+    }
+
+    /// Get the extent if set
+    pub fn extent(&self) -> Option<&BrushSelection> {
+        self.extent.as_ref()
     }
 
     /// Set the handle size for resize detection
@@ -335,7 +368,16 @@ impl BrushBehavior {
     }
 
     /// Handle the start of an interaction (mouse down)
-    pub fn handle_start(&mut self, x: f64, y: f64) {
+    ///
+    /// Returns `true` if the interaction was successfully started.
+    /// Returns `false` if the brush is not properly configured (e.g., X/Y brush without extent).
+    pub fn handle_start(&mut self, x: f64, y: f64) -> bool {
+        // Validate configuration for X/Y brush types
+        if !self.is_valid() {
+            // X and Y brushes require an extent to be set
+            return false;
+        }
+
         self.start_pos = (x, y);
 
         // Check if clicking on existing selection handles
@@ -344,14 +386,14 @@ impl BrushBehavior {
             if resize_state != BrushState::Idle {
                 self.state = resize_state;
                 self.original_selection = self.selection;
-                return;
+                return true;
             }
 
             // Check if clicking inside selection (for move)
             if sel.contains(x, y) {
                 self.state = BrushState::Moving;
                 self.original_selection = self.selection;
-                return;
+                return true;
             }
         }
 
@@ -359,6 +401,7 @@ impl BrushBehavior {
         self.state = BrushState::Selecting;
         self.selection = Some(BrushSelection::from_point(x, y));
         self.original_selection = None;
+        true
     }
 
     /// Handle movement during interaction (mouse move)
@@ -397,12 +440,8 @@ impl BrushBehavior {
                 if let Some(orig) = &self.original_selection {
                     let dx = x - self.start_pos.0;
                     let dy = y - self.start_pos.1;
-                    let moved = BrushSelection::new(
-                        orig.x0 + dx,
-                        orig.y0 + dy,
-                        orig.x1 + dx,
-                        orig.y1 + dy,
-                    );
+                    let moved =
+                        BrushSelection::new(orig.x0 + dx, orig.y0 + dy, orig.x1 + dx, orig.y1 + dy);
                     self.selection = Some(self.constrain(moved));
                 }
                 true
@@ -627,7 +666,7 @@ mod tests {
         let mut brush = BrushBehavior::xy();
         assert!(brush.selection().is_none());
 
-        brush.handle_start(10.0, 10.0);
+        assert!(brush.handle_start(10.0, 10.0)); // Returns true for XY brush
         assert!(brush.is_selecting());
 
         brush.handle_move(100.0, 80.0);
@@ -643,9 +682,47 @@ mod tests {
     }
 
     #[test]
+    fn test_brush_validation() {
+        // XY brush is always valid
+        let xy_brush = BrushBehavior::xy();
+        assert!(xy_brush.is_valid());
+
+        // X brush without extent is invalid
+        let x_brush = BrushBehavior::x();
+        assert!(!x_brush.is_valid());
+
+        // X brush with extent is valid
+        let x_brush_with_extent = BrushBehavior::x().with_extent(0.0, 0.0, 100.0, 100.0);
+        assert!(x_brush_with_extent.is_valid());
+
+        // Y brush without extent is invalid
+        let y_brush = BrushBehavior::y();
+        assert!(!y_brush.is_valid());
+
+        // Y brush with extent is valid
+        let y_brush_with_extent = BrushBehavior::y().with_extent(0.0, 0.0, 100.0, 100.0);
+        assert!(y_brush_with_extent.is_valid());
+    }
+
+    #[test]
+    fn test_brush_x_without_extent_fails() {
+        let mut brush = BrushBehavior::x();
+        // Should fail to start without extent
+        assert!(!brush.handle_start(50.0, 50.0));
+        assert!(!brush.is_active());
+    }
+
+    #[test]
+    fn test_brush_y_without_extent_fails() {
+        let mut brush = BrushBehavior::y();
+        // Should fail to start without extent
+        assert!(!brush.handle_start(50.0, 50.0));
+        assert!(!brush.is_active());
+    }
+
+    #[test]
     fn test_brush_behavior_x() {
-        let mut brush = BrushBehavior::x()
-            .with_extent(0.0, 0.0, 500.0, 300.0);
+        let mut brush = BrushBehavior::x().with_extent(0.0, 0.0, 500.0, 300.0);
 
         brush.handle_start(50.0, 150.0);
         brush.handle_move(200.0, 100.0);
@@ -660,8 +737,7 @@ mod tests {
 
     #[test]
     fn test_brush_behavior_y() {
-        let mut brush = BrushBehavior::y()
-            .with_extent(0.0, 0.0, 500.0, 300.0);
+        let mut brush = BrushBehavior::y().with_extent(0.0, 0.0, 500.0, 300.0);
 
         brush.handle_start(250.0, 50.0);
         brush.handle_move(100.0, 200.0);
@@ -679,12 +755,12 @@ mod tests {
         let mut brush = BrushBehavior::xy();
 
         // Create initial selection
-        brush.handle_start(0.0, 0.0);
+        assert!(brush.handle_start(0.0, 0.0));
         brush.handle_move(100.0, 100.0);
         brush.handle_end();
 
         // Start move inside selection
-        brush.handle_start(50.0, 50.0);
+        assert!(brush.handle_start(50.0, 50.0));
         assert!(brush.is_moving());
 
         // Move selection
@@ -700,7 +776,7 @@ mod tests {
     #[test]
     fn test_brush_behavior_clear() {
         let mut brush = BrushBehavior::xy();
-        brush.handle_start(0.0, 0.0);
+        assert!(brush.handle_start(0.0, 0.0));
         brush.handle_move(100.0, 100.0);
         brush.handle_end();
 
@@ -711,10 +787,9 @@ mod tests {
 
     #[test]
     fn test_brush_behavior_extent_constraint() {
-        let mut brush = BrushBehavior::xy()
-            .with_extent(0.0, 0.0, 100.0, 100.0);
+        let mut brush = BrushBehavior::xy().with_extent(0.0, 0.0, 100.0, 100.0);
 
-        brush.handle_start(10.0, 10.0);
+        assert!(brush.handle_start(10.0, 10.0));
         brush.handle_move(200.0, 200.0); // Beyond extent
 
         let sel = brush.selection().unwrap();
@@ -730,7 +805,7 @@ mod tests {
         assert_eq!(brush.cursor_at(50.0, 50.0), BrushCursor::Crosshair);
 
         // Create selection
-        brush.handle_start(0.0, 0.0);
+        assert!(brush.handle_start(0.0, 0.0));
         brush.handle_move(100.0, 100.0);
         brush.handle_end();
 

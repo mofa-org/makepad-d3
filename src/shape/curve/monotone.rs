@@ -118,11 +118,7 @@ impl Curve for MonotoneCurve {
 
             let cp2 = Point::new(p1.x - dx / 3.0, p1.y - m1 * dx / 3.0);
 
-            path.push(PathSegment::CurveTo {
-                cp1,
-                cp2,
-                end: p1,
-            });
+            path.push(PathSegment::CurveTo { cp1, cp2, end: p1 });
         }
 
         path
@@ -178,10 +174,7 @@ mod tests {
     #[test]
     fn test_monotone_two_points() {
         let curve = MonotoneCurve::new();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 2); // Falls back to linear

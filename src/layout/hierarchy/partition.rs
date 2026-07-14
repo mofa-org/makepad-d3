@@ -176,7 +176,11 @@ impl PartitionLayout {
         if node.children.is_empty() {
             node.depth
         } else {
-            node.children.iter().map(|c| self.find_max_depth(c)).max().unwrap_or(node.depth)
+            node.children
+                .iter()
+                .map(|c| self.find_max_depth(c))
+                .max()
+                .unwrap_or(node.depth)
         }
     }
 
@@ -208,11 +212,7 @@ impl PartitionLayout {
                 };
 
                 // Determine color index: for depth 1, use child index; otherwise inherit
-                let child_color_index = if depth == 0 {
-                    i
-                } else {
-                    color_index
-                };
+                let child_color_index = if depth == 0 { i } else { color_index };
 
                 let child_node = self.layout_node(
                     child,

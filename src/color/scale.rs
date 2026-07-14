@@ -34,7 +34,10 @@ pub struct SequentialScale {
 impl SequentialScale {
     /// Create a new sequential scale from colors
     pub fn new(colors: Vec<Rgba>) -> Self {
-        assert!(!colors.is_empty(), "Sequential scale requires at least one color");
+        assert!(
+            !colors.is_empty(),
+            "Sequential scale requires at least one color"
+        );
         Self { colors }
     }
 
@@ -53,136 +56,131 @@ impl SequentialScale {
     /// Viridis color scheme (perceptually uniform, colorblind safe)
     pub fn viridis() -> Self {
         Self::from_hex(&[
-            0x440154, 0x482878, 0x3E4A89, 0x31688E, 0x26838E,
-            0x1F9E89, 0x35B779, 0x6DCD59, 0xB4DE2C, 0xFDE725,
+            0x440154, 0x482878, 0x3E4A89, 0x31688E, 0x26838E, 0x1F9E89, 0x35B779, 0x6DCD59,
+            0xB4DE2C, 0xFDE725,
         ])
     }
 
     /// Plasma color scheme
     pub fn plasma() -> Self {
         Self::from_hex(&[
-            0x0D0887, 0x46039F, 0x7201A8, 0x9C179E, 0xBD3786,
-            0xD8576B, 0xED7953, 0xFB9F3A, 0xFDCA26, 0xF0F921,
+            0x0D0887, 0x46039F, 0x7201A8, 0x9C179E, 0xBD3786, 0xD8576B, 0xED7953, 0xFB9F3A,
+            0xFDCA26, 0xF0F921,
         ])
     }
 
     /// Inferno color scheme
     pub fn inferno() -> Self {
         Self::from_hex(&[
-            0x000004, 0x1B0C41, 0x4A0C6B, 0x781C6D, 0xA52C60,
-            0xCF4446, 0xED6925, 0xFB9A06, 0xF7D03C, 0xFCFFA4,
+            0x000004, 0x1B0C41, 0x4A0C6B, 0x781C6D, 0xA52C60, 0xCF4446, 0xED6925, 0xFB9A06,
+            0xF7D03C, 0xFCFFA4,
         ])
     }
 
     /// Magma color scheme
     pub fn magma() -> Self {
         Self::from_hex(&[
-            0x000004, 0x180F3D, 0x440F76, 0x721F81, 0x9E2F7F,
-            0xCD4071, 0xF1605D, 0xFD9668, 0xFECA8E, 0xFCFDBF,
+            0x000004, 0x180F3D, 0x440F76, 0x721F81, 0x9E2F7F, 0xCD4071, 0xF1605D, 0xFD9668,
+            0xFECA8E, 0xFCFDBF,
         ])
     }
 
     /// Cividis color scheme (colorblind safe)
     pub fn cividis() -> Self {
         Self::from_hex(&[
-            0x002051, 0x0A326A, 0x2B446E, 0x4A5568, 0x636763,
-            0x7C7B57, 0x97904B, 0xB4A73E, 0xD3C038, 0xFDEA45,
+            0x002051, 0x0A326A, 0x2B446E, 0x4A5568, 0x636763, 0x7C7B57, 0x97904B, 0xB4A73E,
+            0xD3C038, 0xFDEA45,
         ])
     }
 
     /// Blues single-hue sequential
     pub fn blues() -> Self {
         Self::from_hex(&[
-            0xF7FBFF, 0xDEEBF7, 0xC6DBEF, 0x9ECAE1, 0x6BAED6,
-            0x4292C6, 0x2171B5, 0x08519C, 0x08306B,
+            0xF7FBFF, 0xDEEBF7, 0xC6DBEF, 0x9ECAE1, 0x6BAED6, 0x4292C6, 0x2171B5, 0x08519C,
+            0x08306B,
         ])
     }
 
     /// Greens single-hue sequential
     pub fn greens() -> Self {
         Self::from_hex(&[
-            0xF7FCF5, 0xE5F5E0, 0xC7E9C0, 0xA1D99B, 0x74C476,
-            0x41AB5D, 0x238B45, 0x006D2C, 0x00441B,
+            0xF7FCF5, 0xE5F5E0, 0xC7E9C0, 0xA1D99B, 0x74C476, 0x41AB5D, 0x238B45, 0x006D2C,
+            0x00441B,
         ])
     }
 
     /// Oranges single-hue sequential
     pub fn oranges() -> Self {
         Self::from_hex(&[
-            0xFFF5EB, 0xFEE6CE, 0xFDD0A2, 0xFDAE6B, 0xFD8D3C,
-            0xF16913, 0xD94801, 0xA63603, 0x7F2704,
+            0xFFF5EB, 0xFEE6CE, 0xFDD0A2, 0xFDAE6B, 0xFD8D3C, 0xF16913, 0xD94801, 0xA63603,
+            0x7F2704,
         ])
     }
 
     /// Purples single-hue sequential
     pub fn purples() -> Self {
         Self::from_hex(&[
-            0xFCFBFD, 0xEFEDF5, 0xDADAEB, 0xBCBDDC, 0x9E9AC8,
-            0x807DBA, 0x6A51A3, 0x54278F, 0x3F007D,
+            0xFCFBFD, 0xEFEDF5, 0xDADAEB, 0xBCBDDC, 0x9E9AC8, 0x807DBA, 0x6A51A3, 0x54278F,
+            0x3F007D,
         ])
     }
 
     /// Reds single-hue sequential
     pub fn reds() -> Self {
         Self::from_hex(&[
-            0xFFF5F0, 0xFEE0D2, 0xFCBBA1, 0xFC9272, 0xFB6A4A,
-            0xEF3B2C, 0xCB181D, 0xA50F15, 0x67000D,
+            0xFFF5F0, 0xFEE0D2, 0xFCBBA1, 0xFC9272, 0xFB6A4A, 0xEF3B2C, 0xCB181D, 0xA50F15,
+            0x67000D,
         ])
     }
 
     /// Greys single-hue sequential
     pub fn greys() -> Self {
         Self::from_hex(&[
-            0xFFFFFF, 0xF0F0F0, 0xD9D9D9, 0xBDBDBD, 0x969696,
-            0x737373, 0x525252, 0x252525, 0x000000,
+            0xFFFFFF, 0xF0F0F0, 0xD9D9D9, 0xBDBDBD, 0x969696, 0x737373, 0x525252, 0x252525,
+            0x000000,
         ])
     }
 
     /// Blue-Green sequential
     pub fn blue_green() -> Self {
         Self::from_hex(&[
-            0xF7FCFD, 0xE5F5F9, 0xCCECE6, 0x99D8C9, 0x66C2A4,
-            0x41AE76, 0x238B45, 0x006D2C, 0x00441B,
+            0xF7FCFD, 0xE5F5F9, 0xCCECE6, 0x99D8C9, 0x66C2A4, 0x41AE76, 0x238B45, 0x006D2C,
+            0x00441B,
         ])
     }
 
     /// Blue-Purple sequential
     pub fn blue_purple() -> Self {
         Self::from_hex(&[
-            0xF7FCFD, 0xE0ECF4, 0xBFD3E6, 0x9EBCDA, 0x8C96C6,
-            0x8C6BB1, 0x88419D, 0x810F7C, 0x4D004B,
+            0xF7FCFD, 0xE0ECF4, 0xBFD3E6, 0x9EBCDA, 0x8C96C6, 0x8C6BB1, 0x88419D, 0x810F7C,
+            0x4D004B,
         ])
     }
 
     /// Yellow-Green sequential
     pub fn yellow_green() -> Self {
         Self::from_hex(&[
-            0xFFFFE5, 0xF7FCB9, 0xD9F0A3, 0xADDD8E, 0x78C679,
-            0x41AB5D, 0x238B45, 0x006837, 0x004529,
+            0xFFFFE5, 0xF7FCB9, 0xD9F0A3, 0xADDD8E, 0x78C679, 0x41AB5D, 0x238B45, 0x006837,
+            0x004529,
         ])
     }
 
     /// Yellow-Orange-Red sequential (heat)
     pub fn yellow_orange_red() -> Self {
         Self::from_hex(&[
-            0xFFFFCC, 0xFFEDA0, 0xFED976, 0xFEB24C, 0xFD8D3C,
-            0xFC4E2A, 0xE31A1C, 0xBD0026, 0x800026,
+            0xFFFFCC, 0xFFEDA0, 0xFED976, 0xFEB24C, 0xFD8D3C, 0xFC4E2A, 0xE31A1C, 0xBD0026,
+            0x800026,
         ])
     }
 
     /// Warm sequential (brown to yellow)
     pub fn warm() -> Self {
-        Self::from_hex(&[
-            0x6E40AA, 0xBF3CAF, 0xFE4B83, 0xFF7847, 0xE2B72F,
-            0xAFF05B,
-        ])
+        Self::from_hex(&[0x6E40AA, 0xBF3CAF, 0xFE4B83, 0xFF7847, 0xE2B72F, 0xAFF05B])
     }
 
     /// Cool sequential (cyan to purple)
     pub fn cool() -> Self {
-        Self::from_hex(&[
-            0x6E40AA, 0x4C6EDB, 0x32A0D7, 0x4DC7A9, 0xAFF05B,
-        ])
+        Self::from_hex(&[0x6E40AA, 0x4C6EDB, 0x32A0D7, 0x4DC7A9, 0xAFF05B])
     }
 }
 
@@ -379,7 +377,10 @@ pub struct CategoricalScale {
 impl CategoricalScale {
     /// Create a new categorical scale
     pub fn new(colors: Vec<Rgba>) -> Self {
-        assert!(!colors.is_empty(), "Categorical scale requires at least one color");
+        assert!(
+            !colors.is_empty(),
+            "Categorical scale requires at least one color"
+        );
         Self { colors }
     }
 
@@ -445,76 +446,69 @@ impl CategoricalScale {
     /// D3 Category20 - 20 paired colors
     pub fn category20() -> Self {
         Self::from_hex(&[
-            0x1F77B4, 0xAEC7E8, 0xFF7F0E, 0xFFBB78, 0x2CA02C,
-            0x98DF8A, 0xD62728, 0xFF9896, 0x9467BD, 0xC5B0D5,
-            0x8C564B, 0xC49C94, 0xE377C2, 0xF7B6D2, 0x7F7F7F,
-            0xC7C7C7, 0xBCBD22, 0xDBDB8D, 0x17BECF, 0x9EDAE5,
+            0x1F77B4, 0xAEC7E8, 0xFF7F0E, 0xFFBB78, 0x2CA02C, 0x98DF8A, 0xD62728, 0xFF9896,
+            0x9467BD, 0xC5B0D5, 0x8C564B, 0xC49C94, 0xE377C2, 0xF7B6D2, 0x7F7F7F, 0xC7C7C7,
+            0xBCBD22, 0xDBDB8D, 0x17BECF, 0x9EDAE5,
         ])
     }
 
     /// Set1 - Qualitative colorblind-safe
     pub fn set1() -> Self {
         Self::from_hex(&[
-            0xE41A1C, 0x377EB8, 0x4DAF4A, 0x984EA3, 0xFF7F00,
-            0xFFFF33, 0xA65628, 0xF781BF, 0x999999,
+            0xE41A1C, 0x377EB8, 0x4DAF4A, 0x984EA3, 0xFF7F00, 0xFFFF33, 0xA65628, 0xF781BF,
+            0x999999,
         ])
     }
 
     /// Set2 - Qualitative pastel
     pub fn set2() -> Self {
         Self::from_hex(&[
-            0x66C2A5, 0xFC8D62, 0x8DA0CB, 0xE78AC3, 0xA6D854,
-            0xFFD92F, 0xE5C494, 0xB3B3B3,
+            0x66C2A5, 0xFC8D62, 0x8DA0CB, 0xE78AC3, 0xA6D854, 0xFFD92F, 0xE5C494, 0xB3B3B3,
         ])
     }
 
     /// Set3 - Qualitative
     pub fn set3() -> Self {
         Self::from_hex(&[
-            0x8DD3C7, 0xFFFFB3, 0xBEBADA, 0xFB8072, 0x80B1D3,
-            0xFDB462, 0xB3DE69, 0xFCCDE5, 0xD9D9D9, 0xBC80BD,
-            0xCCEBC5, 0xFFED6F,
+            0x8DD3C7, 0xFFFFB3, 0xBEBADA, 0xFB8072, 0x80B1D3, 0xFDB462, 0xB3DE69, 0xFCCDE5,
+            0xD9D9D9, 0xBC80BD, 0xCCEBC5, 0xFFED6F,
         ])
     }
 
     /// Pastel1 colors
     pub fn pastel1() -> Self {
         Self::from_hex(&[
-            0xFBB4AE, 0xB3CDE3, 0xCCEBC5, 0xDECBE4, 0xFED9A6,
-            0xFFFFCC, 0xE5D8BD, 0xFDDAEC, 0xF2F2F2,
+            0xFBB4AE, 0xB3CDE3, 0xCCEBC5, 0xDECBE4, 0xFED9A6, 0xFFFFCC, 0xE5D8BD, 0xFDDAEC,
+            0xF2F2F2,
         ])
     }
 
     /// Pastel2 colors
     pub fn pastel2() -> Self {
         Self::from_hex(&[
-            0xB3E2CD, 0xFDCDAC, 0xCBD5E8, 0xF4CAE4, 0xE6F5C9,
-            0xFFF2AE, 0xF1E2CC, 0xCCCCCC,
+            0xB3E2CD, 0xFDCDAC, 0xCBD5E8, 0xF4CAE4, 0xE6F5C9, 0xFFF2AE, 0xF1E2CC, 0xCCCCCC,
         ])
     }
 
     /// Dark2 colors
     pub fn dark2() -> Self {
         Self::from_hex(&[
-            0x1B9E77, 0xD95F02, 0x7570B3, 0xE7298A, 0x66A61E,
-            0xE6AB02, 0xA6761D, 0x666666,
+            0x1B9E77, 0xD95F02, 0x7570B3, 0xE7298A, 0x66A61E, 0xE6AB02, 0xA6761D, 0x666666,
         ])
     }
 
     /// Paired colors (light/dark pairs)
     pub fn paired() -> Self {
         Self::from_hex(&[
-            0xA6CEE3, 0x1F78B4, 0xB2DF8A, 0x33A02C, 0xFB9A99,
-            0xE31A1C, 0xFDBF6F, 0xFF7F00, 0xCAB2D6, 0x6A3D9A,
-            0xFFFF99, 0xB15928,
+            0xA6CEE3, 0x1F78B4, 0xB2DF8A, 0x33A02C, 0xFB9A99, 0xE31A1C, 0xFDBF6F, 0xFF7F00,
+            0xCAB2D6, 0x6A3D9A, 0xFFFF99, 0xB15928,
         ])
     }
 
     /// Accent colors
     pub fn accent() -> Self {
         Self::from_hex(&[
-            0x7FC97F, 0xBEAED4, 0xFDC086, 0xFFFF99, 0x386CB0,
-            0xF0027F, 0xBF5B17, 0x666666,
+            0x7FC97F, 0xBEAED4, 0xFDC086, 0xFFFF99, 0x386CB0, 0xF0027F, 0xBF5B17, 0x666666,
         ])
     }
 }

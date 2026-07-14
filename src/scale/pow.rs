@@ -1,7 +1,7 @@
 //! Power scale implementation
 
-use super::traits::{Scale, ContinuousScale, ScaleExt, Tick, TickOptions};
-use super::utils::{nice_step, nice_bounds, format_number};
+use super::traits::{ContinuousScale, Scale, ScaleExt, Tick, TickOptions};
+use super::utils::{format_number, nice_bounds, nice_step};
 
 /// Power scale for polynomial interpolation
 ///
@@ -169,9 +169,9 @@ impl Scale for PowScale {
     fn ticks(&self, options: &TickOptions) -> Vec<Tick> {
         let span = self.domain_max - self.domain_min;
 
-        let step = options.step_size.unwrap_or_else(|| {
-            nice_step(span.abs(), options.count)
-        });
+        let step = options
+            .step_size
+            .unwrap_or_else(|| nice_step(span.abs(), options.count));
 
         if step <= 0.0 {
             return vec![];
@@ -184,7 +184,8 @@ impl Scale for PowScale {
 
         let mut value = start;
         while value <= self.domain_max + epsilon && ticks.len() < options.max_count {
-            let skip = ticks.last()
+            let skip = ticks
+                .last()
                 .map(|t: &Tick| (t.value - value).abs() < epsilon)
                 .unwrap_or(false);
 
@@ -319,8 +320,7 @@ mod tests {
 
     #[test]
     fn test_pow_scale_nice() {
-        let mut scale = PowScale::sqrt()
-            .with_domain(3.2, 97.8);
+        let mut scale = PowScale::sqrt().with_domain(3.2, 97.8);
 
         scale.nice();
 

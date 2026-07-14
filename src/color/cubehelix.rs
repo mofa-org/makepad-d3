@@ -139,11 +139,7 @@ impl Cubehelix {
         let g = l + amp * (C * cos_a + D * sin_a);
         let b = l + amp * (E * cos_a);
 
-        Rgba::rgb(
-            r.clamp(0.0, 1.0),
-            g.clamp(0.0, 1.0),
-            b.clamp(0.0, 1.0),
-        )
+        Rgba::rgb(r.clamp(0.0, 1.0), g.clamp(0.0, 1.0), b.clamp(0.0, 1.0))
     }
 
     /// Create an interpolator function
@@ -223,15 +219,15 @@ pub fn turbo(t: f64) -> Rgba {
 
     // Key points from Google's turbo colormap (simplified 9-point version)
     const TURBO_COLORS: [(f32, f32, f32); 9] = [
-        (0.190, 0.072, 0.232),  // t=0.0    - dark blue/purple
-        (0.129, 0.298, 0.697),  // t=0.125  - blue
-        (0.094, 0.539, 0.750),  // t=0.25   - cyan-blue
-        (0.137, 0.718, 0.565),  // t=0.375  - cyan-green
-        (0.365, 0.827, 0.322),  // t=0.5    - green
-        (0.631, 0.854, 0.133),  // t=0.625  - yellow-green
-        (0.892, 0.737, 0.099),  // t=0.75   - yellow-orange
-        (0.989, 0.460, 0.157),  // t=0.875  - orange
-        (0.479, 0.016, 0.011),  // t=1.0    - dark red
+        (0.190, 0.072, 0.232), // t=0.0    - dark blue/purple
+        (0.129, 0.298, 0.697), // t=0.125  - blue
+        (0.094, 0.539, 0.750), // t=0.25   - cyan-blue
+        (0.137, 0.718, 0.565), // t=0.375  - cyan-green
+        (0.365, 0.827, 0.322), // t=0.5    - green
+        (0.631, 0.854, 0.133), // t=0.625  - yellow-green
+        (0.892, 0.737, 0.099), // t=0.75   - yellow-orange
+        (0.989, 0.460, 0.157), // t=0.875  - orange
+        (0.479, 0.016, 0.011), // t=1.0    - dark red
     ];
 
     // Find segment and interpolate

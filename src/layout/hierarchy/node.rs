@@ -142,6 +142,7 @@ impl<T> HierarchyNode<T> {
     ///
     /// After calling this, internal nodes will have value = sum of children's values
     pub fn sum(&mut self) -> f64 {
+        // Safe recursive implementation - tree depth is typically small
         if self.is_leaf() {
             self.value
         } else {
@@ -174,7 +175,9 @@ impl<T> HierarchyNode<T> {
     /// Sort children by value (descending)
     pub fn sort_by_value(&mut self) {
         self.children.sort_by(|a, b| {
-            b.value.partial_cmp(&a.value).unwrap_or(std::cmp::Ordering::Equal)
+            b.value
+                .partial_cmp(&a.value)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
         for child in &mut self.children {
             child.sort_by_value();
@@ -191,9 +194,7 @@ impl<T> HierarchyNode<T> {
 
     /// Get an iterator over all nodes (pre-order traversal)
     pub fn iter(&self) -> HierarchyIter<'_, T> {
-        HierarchyIter {
-            stack: vec![self],
-        }
+        HierarchyIter { stack: vec![self] }
     }
 
     /// Get leaf nodes
@@ -221,6 +222,7 @@ impl<T> HierarchyNode<T> {
     where
         T: Clone,
     {
+        // Safe recursive implementation - tree depth is typically small
         HierarchyNode {
             data: self.data.clone(),
             value: self.value,

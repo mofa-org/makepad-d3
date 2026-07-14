@@ -197,9 +197,7 @@ impl PieLayout {
 
     /// Create a half-pie (semicircle) layout
     pub fn half() -> Self {
-        Self::new()
-            .start_angle(0.0)
-            .end_angle(std::f64::consts::PI)
+        Self::new().start_angle(0.0).end_angle(std::f64::consts::PI)
     }
 
     /// Create a three-quarter pie layout
@@ -312,9 +310,18 @@ mod tests {
         }
 
         let items = vec![
-            Item { name: "A", count: 10.0 },
-            Item { name: "B", count: 20.0 },
-            Item { name: "C", count: 30.0 },
+            Item {
+                name: "A",
+                count: 10.0,
+            },
+            Item {
+                name: "B",
+                count: 20.0,
+            },
+            Item {
+                name: "C",
+                count: 30.0,
+            },
         ];
 
         let pie = PieLayout::new();

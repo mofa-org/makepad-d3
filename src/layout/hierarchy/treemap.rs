@@ -146,9 +146,14 @@ impl TreemapLayout {
         tree
     }
 
-    /// Tile a node and its children
+    /// Tile a node and its children (recursive with depth limit to prevent stack overflow)
     fn tile_node<T>(&self, node: &mut HierarchyNode<T>) {
-        if node.children.is_empty() {
+        const MAX_DEPTH: usize = 50;
+        self.tile_node_impl(node, 0, MAX_DEPTH);
+    }
+
+    fn tile_node_impl<T>(&self, node: &mut HierarchyNode<T>, depth: usize, max_depth: usize) {
+        if depth > max_depth || node.children.is_empty() {
             return;
         }
 
@@ -177,9 +182,9 @@ impl TreemapLayout {
             }
         }
 
-        // Recursively tile children
+        // Recursively tile children with depth limit
         for child in &mut node.children {
-            self.tile_node(child);
+            self.tile_node_impl(child, depth + 1, max_depth);
         }
     }
 
@@ -283,46 +288,145 @@ impl TreemapLayout {
         x1: f64,
         y1: f64,
     ) {
-        let count = end - start;
-        if count == 0 {
-            return;
+        // Use iterative approach with explicit stack to avoid stack overflow
+        struct RangeTask {
+            start: usize,
+            end: usize,
+            x0: f64,
+            y0: f64,
+            x1: f64,
+            y1: f64,
         }
 
-        if count == 1 {
-            node.children[start].x = x0;
-            node.children[start].y = y0;
-            node.children[start].width = x1 - x0;
-            node.children[start].rect_height = y1 - y0;
-            return;
-        }
+        let mut stack: Vec<RangeTask> = vec![RangeTask {
+            start,
+            end,
+            x0,
+            y0,
+            x1,
+            y1,
+        }];
 
-        let total: f64 = node.children[start..end].iter().map(|c| c.value).sum();
-        let target = total / 2.0;
-        let mut sum = 0.0;
-        let mut split_index = start;
+        while let Some(task) = stack.pop() {
+            let RangeTask {
+                start,
+                end,
+                x0,
+                y0,
+                x1,
+                y1,
+            } = task;
+            let count = end - start;
 
-        for i in start..end {
-            sum += node.children[i].value;
-            if sum >= target {
-                split_index = i;
-                break;
+            if count == 0 {
+                continue;
             }
-        }
 
-        let left_sum: f64 = node.children[start..=split_index].iter().map(|c| c.value).sum();
-        let ratio = if total > 0.0 { left_sum / total } else { 0.5 };
+            if count == 1 {
+                node.children[start].x = x0;
+                node.children[start].y = y0;
+                node.children[start].width = x1 - x0;
+                node.children[start].rect_height = y1 - y0;
+                continue;
+            }
 
-        let width = x1 - x0;
-        let height = y1 - y0;
+            let total: f64 = node.children[start..end].iter().map(|c| c.value).sum();
 
-        if width > height {
-            let split_x = x0 + width * ratio;
-            self.tile_binary_range(node, start, split_index + 1, x0, y0, split_x, y1);
-            self.tile_binary_range(node, split_index + 1, end, split_x, y0, x1, y1);
-        } else {
-            let split_y = y0 + height * ratio;
-            self.tile_binary_range(node, start, split_index + 1, x0, y0, x1, split_y);
-            self.tile_binary_range(node, split_index + 1, end, x0, split_y, x1, y1);
+            // Handle zero or negative total values
+            if total <= 0.0 {
+                // Distribute space evenly among children
+                let width = x1 - x0;
+                let height = y1 - y0;
+                let child_size = if width > height {
+                    (width / count as f64, height)
+                } else {
+                    (width, height / count as f64)
+                };
+
+                for (i, child) in node.children[start..end].iter_mut().enumerate() {
+                    if width > height {
+                        child.x = x0 + i as f64 * child_size.0;
+                        child.y = y0;
+                        child.width = child_size.0;
+                        child.rect_height = child_size.1;
+                    } else {
+                        child.x = x0;
+                        child.y = y0 + i as f64 * child_size.1;
+                        child.width = child_size.0;
+                        child.rect_height = child_size.1;
+                    }
+                }
+                continue;
+            }
+
+            let target = total / 2.0;
+            let mut sum = 0.0;
+            let mut split_index = start;
+
+            for i in start..end {
+                sum += node.children[i].value;
+                if sum >= target {
+                    split_index = i;
+                    break;
+                }
+            }
+
+            // Ensure split_index is at least start and at most end - 2
+            // to ensure both recursive calls make progress
+            if split_index < start {
+                split_index = start;
+            } else if split_index >= end - 1 {
+                split_index = end - 2;
+            }
+
+            let left_sum: f64 = node.children[start..=split_index]
+                .iter()
+                .map(|c| c.value)
+                .sum();
+            let ratio = left_sum / total;
+
+            let width = x1 - x0;
+            let height = y1 - y0;
+
+            if width > height {
+                let split_x = x0 + width * ratio;
+                // Push in reverse order so left side is processed first
+                stack.push(RangeTask {
+                    start: split_index + 1,
+                    end,
+                    x0: split_x,
+                    y0,
+                    x1,
+                    y1,
+                });
+                stack.push(RangeTask {
+                    start,
+                    end: split_index + 1,
+                    x0,
+                    y0,
+                    x1: split_x,
+                    y1,
+                });
+            } else {
+                let split_y = y0 + height * ratio;
+                // Push in reverse order so top side is processed first
+                stack.push(RangeTask {
+                    start: split_index + 1,
+                    end,
+                    x0,
+                    y0: split_y,
+                    x1,
+                    y1,
+                });
+                stack.push(RangeTask {
+                    start,
+                    end: split_index + 1,
+                    x0,
+                    y0,
+                    x1,
+                    y1: split_y,
+                });
+            }
         }
     }
 
@@ -350,14 +454,25 @@ impl TreemapLayout {
         let mut curr_w = x1 - x0;
         let mut curr_h = y1 - y0;
 
-        let mut row_start = 0;
+        let mut row_indices: Vec<usize> = Vec::new();
         let mut row_values: Vec<f64> = Vec::new();
         let mut row_sum = 0.0;
 
-        for (pos, &idx) in indices.iter().enumerate() {
+        for &idx in &indices {
             let value = node.children[idx].value;
 
+            // Skip zero or negative values
+            if value <= 0.0 {
+                continue;
+            }
+
+            // Guard against invalid remaining dimensions
+            if curr_w <= 0.0 || curr_h <= 0.0 || remaining_area <= 0.0 || remaining_value <= 0.0 {
+                break;
+            }
+
             if row_values.is_empty() {
+                row_indices.push(idx);
                 row_values.push(value);
                 row_sum = value;
                 continue;
@@ -365,11 +480,15 @@ impl TreemapLayout {
 
             // Calculate aspect ratio with and without this item
             let short_side = curr_w.min(curr_h);
+            if short_side <= 0.0 {
+                break;
+            }
             let row_area = row_sum / remaining_value * remaining_area;
             let row_length = row_area / short_side;
 
             let worst_current = self.worst_ratio(&row_values, row_length);
 
+            row_indices.push(idx);
             row_values.push(value);
             row_sum += value;
             let new_row_area = row_sum / remaining_value * remaining_area;
@@ -378,6 +497,7 @@ impl TreemapLayout {
 
             if worst_with_new > worst_current && row_values.len() > 1 {
                 // Adding this item makes it worse, so finalize current row
+                row_indices.pop();
                 row_values.pop();
                 row_sum -= value;
 
@@ -385,7 +505,7 @@ impl TreemapLayout {
                 let row_area = row_sum / remaining_value * remaining_area;
                 let (new_x, new_y, new_w, new_h) = self.layout_row(
                     node,
-                    &indices[row_start..pos],
+                    &row_indices,
                     &row_values,
                     row_area,
                     curr_x,
@@ -402,7 +522,7 @@ impl TreemapLayout {
                 curr_h = new_h;
 
                 // Start new row with this item
-                row_start = pos;
+                row_indices = vec![idx];
                 row_values = vec![value];
                 row_sum = value;
             }
@@ -413,7 +533,7 @@ impl TreemapLayout {
             let row_area = remaining_area;
             self.layout_row(
                 node,
-                &indices[row_start..],
+                &row_indices,
                 &row_values,
                 row_area,
                 curr_x,
@@ -431,16 +551,33 @@ impl TreemapLayout {
         }
 
         let sum: f64 = values.iter().sum();
-        let length_sq = length * length;
+        if sum <= 0.0 {
+            return f64::INFINITY;
+        }
 
         let mut worst = 0.0_f64;
         for &v in values {
+            if v <= 0.0 {
+                continue; // Skip zero/negative values
+            }
             let w = v / sum * length;
+            if w <= 0.0 {
+                continue;
+            }
             let h = v / w;
+            if h <= 0.0 || !h.is_finite() {
+                continue;
+            }
             let ratio = (w / h).max(h / w);
-            worst = worst.max(ratio);
+            if ratio.is_finite() {
+                worst = worst.max(ratio);
+            }
         }
-        worst
+        if worst <= 0.0 {
+            f64::INFINITY
+        } else {
+            worst
+        }
     }
 
     /// Layout a row of nodes
@@ -456,18 +593,39 @@ impl TreemapLayout {
         h: f64,
     ) -> (f64, f64, f64, f64) {
         let sum: f64 = values.iter().sum();
-        if sum <= 0.0 {
+        if sum <= 0.0 || w <= 0.0 || h <= 0.0 || area <= 0.0 {
             return (x, y, w, h);
         }
 
         let horizontal = w >= h;
-        let length = if horizontal { area / h } else { area / w };
+        let length = if horizontal {
+            if h > 0.0 {
+                area / h
+            } else {
+                0.0
+            }
+        } else {
+            if w > 0.0 {
+                area / w
+            } else {
+                0.0
+            }
+        };
+
+        // Guard against invalid length
+        if !length.is_finite() || length <= 0.0 {
+            return (x, y, w, h);
+        }
 
         let mut pos = if horizontal { x } else { y };
 
         for (i, &idx) in indices.iter().enumerate() {
             let v = values[i];
-            let size = if sum > 0.0 { v / sum * (if horizontal { h } else { w }) } else { 0.0 };
+            let size = if sum > 0.0 {
+                v / sum * (if horizontal { h } else { w })
+            } else {
+                0.0
+            };
 
             if horizontal {
                 node.children[idx].x = pos;
@@ -484,11 +642,11 @@ impl TreemapLayout {
             }
         }
 
-        // Return remaining area
+        // Return remaining area (ensure non-negative dimensions)
         if horizontal {
-            (x + length, y, w - length, h)
+            (x + length, y, (w - length).max(0.0), h)
         } else {
-            (x, y + length, w, h - length)
+            (x, y + length, w, (h - length).max(0.0))
         }
     }
 
@@ -651,5 +809,78 @@ mod tests {
         let parent = &positioned.children[0];
         assert!(leaf1.x >= parent.x);
         assert!(leaf1.y >= parent.y);
+    }
+
+    #[test]
+    fn test_treemap_with_zero_values() {
+        // Test that zero values don't cause crashes
+        let mut root = HierarchyNode::from_label("root", 0.0);
+        root.add_child(HierarchyNode::from_label("A", 0.0));
+        root.add_child(HierarchyNode::from_label("B", 50.0));
+        root.add_child(HierarchyNode::from_label("C", 0.0));
+        root.add_child(HierarchyNode::from_label("D", 50.0));
+
+        let layout = TreemapLayout::new()
+            .size(100.0, 100.0)
+            .tiling(TilingMethod::Squarify);
+
+        // Should not panic
+        let positioned = layout.layout(&root);
+
+        // Non-zero children should have valid dimensions
+        for child in &positioned.children {
+            assert!(child.width >= 0.0);
+            assert!(child.rect_height >= 0.0);
+            assert!(child.width.is_finite());
+            assert!(child.rect_height.is_finite());
+        }
+    }
+
+    #[test]
+    fn test_treemap_with_very_small_dimensions() {
+        // Test that very small layout dimensions don't cause crashes
+        let tree = make_tree();
+        let layout = TreemapLayout::new()
+            .size(1.0, 1.0)
+            .padding(0.1)
+            .tiling(TilingMethod::Squarify);
+
+        // Should not panic
+        let positioned = layout.layout(&tree);
+
+        for child in &positioned.children {
+            assert!(child.width.is_finite());
+            assert!(child.rect_height.is_finite());
+            assert!(child.x.is_finite());
+            assert!(child.y.is_finite());
+        }
+    }
+
+    #[test]
+    fn test_treemap_all_tiling_methods_no_crash() {
+        let tree = make_tree();
+        let methods = [
+            TilingMethod::Squarify,
+            TilingMethod::Binary,
+            TilingMethod::Slice,
+            TilingMethod::Dice,
+            TilingMethod::SliceDice,
+        ];
+
+        for method in methods {
+            let layout = TreemapLayout::new().size(100.0, 100.0).tiling(method);
+
+            // Should not panic for any tiling method
+            let positioned = layout.layout(&tree);
+
+            for child in &positioned.children {
+                assert!(child.width.is_finite(), "width not finite for {:?}", method);
+                assert!(
+                    child.rect_height.is_finite(),
+                    "height not finite for {:?}",
+                    method
+                );
+            }
+        }
     }
 }

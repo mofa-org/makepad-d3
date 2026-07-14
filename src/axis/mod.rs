@@ -52,29 +52,22 @@
 
 mod axis;
 mod format;
-mod tick;
 mod grid;
+mod tick;
 
 // Core axis types
 pub use axis::{
-    Axis, AxisConfig, AxisLayout, AxisOrientation, AxisTick,
-    TextAnchor, LabelAlign, LabelRotation,
+    Axis, AxisConfig, AxisLayout, AxisOrientation, AxisTick, LabelAlign, LabelRotation, TextAnchor,
 };
 
 // Number and time formatting
 pub use format::{
-    NumberFormat, DurationFormat, format_si,
-    TimeFormat, MultiScaleTimeFormat,
-    timestamp_from_ms, timestamp_to_ms, format_relative,
+    format_relative, format_si, timestamp_from_ms, timestamp_to_ms, DurationFormat,
+    MultiScaleTimeFormat, NumberFormat, TimeFormat,
 };
 
 // Enhanced tick configuration
-pub use tick::{
-    TickConfig, TickFilter, TickResult, MinorTick,
-    generate_ticks,
-};
+pub use tick::{generate_ticks, MinorTick, TickConfig, TickFilter, TickResult};
 
 // Grid configuration
-pub use grid::{
-    GridConfig, GridLineStyle, GridLineParams, GridLine,
-};
+pub use grid::{GridConfig, GridLine, GridLineParams, GridLineStyle};

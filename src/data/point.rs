@@ -50,7 +50,10 @@ impl DataPoint {
 
     /// Create from y value only (x will be index)
     pub fn from_y(y: f64) -> Self {
-        Self { y, ..Default::default() }
+        Self {
+            y,
+            ..Default::default()
+        }
     }
 
     /// Create a floating/range data point

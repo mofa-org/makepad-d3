@@ -2,9 +2,9 @@
 //!
 //! Provides axis configuration and layout computation for chart axes.
 
-use crate::scale::{Scale, Tick, TickOptions, DiscreteScale, BandScale, PointScale};
 use super::format::NumberFormat;
 use super::grid::GridConfig;
+use crate::scale::{BandScale, DiscreteScale, PointScale, Scale, Tick, TickOptions};
 
 /// Axis orientation
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -345,16 +345,21 @@ impl AxisConfig {
     /// Get effective text anchor (explicit or default for orientation)
     pub fn effective_text_anchor(&self) -> TextAnchor {
         if self.label_rotation.is_rotated() {
-            self.label_rotation.anchor.unwrap_or(self.orientation.default_text_anchor())
+            self.label_rotation
+                .anchor
+                .unwrap_or(self.orientation.default_text_anchor())
         } else {
-            self.text_anchor.unwrap_or_else(|| self.orientation.default_text_anchor())
+            self.text_anchor
+                .unwrap_or_else(|| self.orientation.default_text_anchor())
         }
     }
 
     /// Get effective label alignment
     pub fn effective_label_align(&self) -> LabelAlign {
         if self.label_rotation.is_rotated() {
-            self.label_rotation.align.unwrap_or(self.orientation.default_label_align())
+            self.label_rotation
+                .align
+                .unwrap_or(self.orientation.default_label_align())
         } else {
             self.orientation.default_label_align()
         }
@@ -742,9 +747,7 @@ mod tests {
             .with_domain(0.0, 1.0)
             .with_range(0.0, 100.0);
 
-        let mut axis = Axis::with_config(
-            AxisConfig::bottom().with_format(NumberFormat::Percent),
-        );
+        let mut axis = Axis::with_config(AxisConfig::bottom().with_format(NumberFormat::Percent));
         axis.set_scale(&scale);
 
         let layout = axis.compute_layout(0.0);
@@ -801,7 +804,7 @@ mod tests {
             .with_range(0.0, 500.0);
 
         let mut axis = Axis::with_config(
-            AxisConfig::bottom().with_label_rotation(LabelRotation::degrees(-30.0))
+            AxisConfig::bottom().with_label_rotation(LabelRotation::degrees(-30.0)),
         );
         axis.set_scale(&scale);
 
@@ -811,16 +814,20 @@ mod tests {
 
     #[test]
     fn test_text_anchor_defaults() {
-        assert_eq!(AxisOrientation::Bottom.default_text_anchor(), TextAnchor::Middle);
+        assert_eq!(
+            AxisOrientation::Bottom.default_text_anchor(),
+            TextAnchor::Middle
+        );
         assert_eq!(AxisOrientation::Left.default_text_anchor(), TextAnchor::End);
-        assert_eq!(AxisOrientation::Right.default_text_anchor(), TextAnchor::Start);
+        assert_eq!(
+            AxisOrientation::Right.default_text_anchor(),
+            TextAnchor::Start
+        );
     }
 
     #[test]
     fn test_band_offset() {
-        let mut axis = Axis::with_config(
-            AxisConfig::bottom().with_band_offset(25.0)
-        );
+        let mut axis = Axis::with_config(AxisConfig::bottom().with_band_offset(25.0));
         axis.set_range((0.0, 200.0));
         axis.set_ticks(vec![
             Tick::new(0.0, "A").with_position(0.0),
@@ -870,8 +877,7 @@ mod tests {
     fn test_grid_config_integration() {
         let grid_config = GridConfig::light_dashed();
 
-        let config = AxisConfig::bottom()
-            .with_grid_config(grid_config);
+        let config = AxisConfig::bottom().with_grid_config(grid_config);
 
         assert!(config.show_grid);
         assert!(config.grid_config.is_enabled());

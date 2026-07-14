@@ -196,10 +196,8 @@ impl PollingDataSource {
         if old_len == 0 || self.data.len() != old_len {
             self.events.push_back(DataSourceEvent::Replace(points));
         } else {
-            self.events.push_back(DataSourceEvent::Update {
-                index: 0,
-                points,
-            });
+            self.events
+                .push_back(DataSourceEvent::Update { index: 0, points });
         }
     }
 

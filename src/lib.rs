@@ -38,6 +38,7 @@
 //! - [`layout`]: Layout algorithms (force simulation, tree, treemap, pack)
 //! - [`geo`]: Geographic projections and GeoJSON support
 //! - [`component`]: Reusable UI components (legend, tooltip, crosshair, annotation)
+//! - [`render3d`]: GPU-accelerated 3D rendering (transforms, meshes, cameras)
 //! - [`error`]: Error types
 //!
 //! # Features
@@ -49,69 +50,117 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 
-pub mod error;
-pub mod data;
-pub mod scale;
 pub mod axis;
-pub mod shape;
 pub mod color;
+pub mod component;
+pub mod data;
+pub mod error;
+pub mod geo;
 pub mod interaction;
 pub mod layout;
-pub mod geo;
-pub mod component;
+pub mod render3d;
+pub mod scale;
+pub mod shape;
+pub mod splash;
+
+/// Register the `d3` Splash script module: chart widgets under `d3.*`
+/// plus the 3D drawing shader types.
+///
+/// Call this from your app's `AppMain::script_mod`, after
+/// `makepad_widgets::script_mod(vm)` (the `d3` module is also injected
+/// into the widgets prelude, so Splash bodies that open with
+/// `use mod.prelude.widgets.*` can write `d3.BarChart{...}` directly):
+///
+/// ```rust,ignore
+/// impl AppMain for App {
+///     fn script_mod(vm: &mut ScriptVm) -> ScriptValue {
+///         makepad_widgets::script_mod(vm);
+///         makepad_d3::script_mod(vm);
+///         self::script_mod(vm)
+///     }
+///     fn handle_event(&mut self, cx: &mut Cx, event: &Event) { /* .. */ }
+/// }
+/// ```
+pub fn script_mod(vm: &mut makepad_widgets::ScriptVm) {
+    // Creates the `mod.d3` namespace — must run before the registrations.
+    let _ = splash::script_mod(vm);
+    // 3D shader types (mod.d3.DrawSurface3D, ...).
+    let _ = render3d::draw::script_mod(vm);
+    // Sandboxed splash-body host (mod.d3.Splash).
+    let _ = splash::host::script_mod(vm);
+    // Chart widgets (mod.d3.BarChart, ...) + widgets-prelude injection.
+    let _ = splash::charts::script_mod(vm);
+}
 
 /// Prelude module for convenient imports
 pub mod prelude {
-    pub use crate::error::{D3Error, D3Result};
-    pub use crate::data::{DataPoint, Dataset, PointStyle, ChartData, Color};
-    pub use crate::scale::{
-        Scale, ContinuousScale, DiscreteScale, ScaleExt,
-        LinearScale, CategoryScale,
-        TimeScale, TimeTick, TimeInterval,
-        LogScale, PowScale, SymlogScale,
-        Tick, TickOptions,
-        nice_step, nice_bounds, format_number,
-    };
     pub use crate::axis::{
-        Axis, AxisConfig, AxisLayout, AxisOrientation, AxisTick,
-        NumberFormat, DurationFormat, format_si,
-    };
-    pub use crate::shape::{
-        Path, PathSegment, Point,
-        LineGenerator, AreaGenerator,
-        ArcGenerator, ArcDatum,
-        PieLayout, PieSlice, PieSort,
-        StackGenerator, StackedSeries, StackPoint, StackOrder, StackOffset,
+        format_si, Axis, AxisConfig, AxisLayout, AxisOrientation, AxisTick, DurationFormat,
+        NumberFormat,
     };
     pub use crate::color::{
-        Rgba, Hsl,
-        ColorScale, SequentialScale, DivergingScale, CategoricalScale,
-        lerp_color, hex, rgb, rgba, hsl,
-    };
-    pub use crate::interaction::{
-        ZoomTransform, ZoomBehavior,
-        BrushType, BrushBehavior, BrushSelection,
-        TooltipContent,
-    };
-    pub use crate::layout::{
-        ForceSimulation, SimulationNode, SimulationLink,
-        Force, ManyBodyForce, LinkForce, CollideForce, CenterForce, PositionForce, RadialForce,
-        HierarchyNode, TreeLayout, TreemapLayout, PackLayout,
-        TilingMethod, PackStrategy,
-    };
-    pub use crate::geo::{
-        Projection, ProjectionBuilder,
-        MercatorProjection, EquirectangularProjection, OrthographicProjection, AlbersProjection,
-        GeoJson, Feature, FeatureCollection, Geometry, GeometryType,
-        Position, BoundingBox, Properties,
-        GeoPath, GeoPathSegment,
+        hex, hsl, lerp_color, rgb, rgba, CategoricalScale, ColorScale, DivergingScale, Hsl, Rgba,
+        SequentialScale,
     };
     pub use crate::component::{
-        Legend, LegendItem, LegendOrientation, LegendPosition,
-        TooltipWidget, TooltipConfig,
-        Crosshair, CrosshairMode,
-        Annotation, AnnotationLayer, AnnotationType,
-        ReferenceLine, ReferenceLineSet,
+        Annotation, AnnotationLayer, AnnotationType, Crosshair, CrosshairMode, Legend, LegendItem,
+        LegendOrientation, LegendPosition, ReferenceLine, ReferenceLineSet, TooltipConfig,
+        TooltipWidget,
+    };
+    pub use crate::data::{ChartData, Color, DataPoint, Dataset, PointStyle};
+    pub use crate::error::{D3Error, D3Result};
+    pub use crate::geo::{
+        AlbersProjection, BoundingBox, EquirectangularProjection, Feature, FeatureCollection,
+        GeoJson, GeoPath, GeoPathSegment, Geometry, GeometryType, MercatorProjection,
+        OrthographicProjection, Position, Projection, ProjectionBuilder, Properties,
+    };
+    pub use crate::interaction::{
+        BrushBehavior, BrushSelection, BrushType, TooltipContent, ZoomBehavior, ZoomTransform,
+    };
+    pub use crate::layout::{
+        CenterForce, CollideForce, Force, ForceSimulation, HierarchyNode, LinkForce, ManyBodyForce,
+        PackLayout, PackStrategy, PositionForce, RadialForce, SimulationLink, SimulationNode,
+        TilingMethod, TreeLayout, TreemapLayout,
+    };
+    pub use crate::render3d::{
+        Bar3D,
+        BarFace,
+        BarFace3D,
+        BarFaceType,
+        Camera3D,
+        CameraController,
+        CameraEvent,
+        Colormap,
+        DrawAxis3D,
+        DrawBar3D,
+        DrawGrid3D,
+        DrawPoint3D,
+        DrawSurface3D,
+        DrawWireframe3D,
+        GeometryMesh3D,
+        Mat4,
+        // Note: Vec3, Vec4 are not re-exported to avoid conflict with makepad_widgets
+        // Use makepad_d3::render3d::{Vec3, Vec4} if needed for 3D-specific operations
+        MeshData,
+        ProjectedPoint,
+        Ray3D,
+        Scatter3D,
+        ScatterPoint3D,
+        Surface3D,
+        SurfaceData,
+        SurfaceFace,
+        Transform3D,
+        FLOATS_PER_VERTEX,
+    };
+    pub use crate::scale::{
+        format_number, nice_bounds, nice_step, CategoryScale, ContinuousScale, DiscreteScale,
+        LinearScale, LogScale, PowScale, Scale, ScaleExt, SymlogScale, Tick, TickOptions,
+        TimeInterval, TimeScale, TimeTick,
+    };
+    pub use crate::shape::{
+        ArcDatum, ArcGenerator, AreaGenerator, LineGenerator, Path, PathSegment, PieLayout,
+        PieSlice, PieSort, Point, StackGenerator, StackOffset, StackOrder, StackPoint,
+        StackedSeries,
     };
 }
 

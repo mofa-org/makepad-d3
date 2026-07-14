@@ -431,10 +431,9 @@ impl TooltipWidget {
                 self.target_x + config.offset_x,
                 self.target_y + config.offset_y,
             ),
-            TooltipAnchor::TopCenter => (
-                self.target_x - width / 2.0,
-                self.target_y + config.offset_y,
-            ),
+            TooltipAnchor::TopCenter => {
+                (self.target_x - width / 2.0, self.target_y + config.offset_y)
+            }
             TooltipAnchor::TopRight => (
                 self.target_x - width - config.offset_x,
                 self.target_y + config.offset_y,

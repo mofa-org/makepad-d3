@@ -84,21 +84,11 @@ impl Curve for CardinalCurve {
             };
 
             // Calculate control points using cardinal spline formula
-            let cp1 = Point::new(
-                p1.x + k * (p2.x - p0.x),
-                p1.y + k * (p2.y - p0.y),
-            );
+            let cp1 = Point::new(p1.x + k * (p2.x - p0.x), p1.y + k * (p2.y - p0.y));
 
-            let cp2 = Point::new(
-                p2.x - k * (p3.x - p1.x),
-                p2.y - k * (p3.y - p1.y),
-            );
+            let cp2 = Point::new(p2.x - k * (p3.x - p1.x), p2.y - k * (p3.y - p1.y));
 
-            path.push(PathSegment::CurveTo {
-                cp1,
-                cp2,
-                end: p2,
-            });
+            path.push(PathSegment::CurveTo { cp1, cp2, end: p2 });
         }
 
         path
@@ -150,10 +140,7 @@ mod tests {
     #[test]
     fn test_cardinal_two_points() {
         let curve = CardinalCurve::new(0.5);
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 2); // Falls back to linear

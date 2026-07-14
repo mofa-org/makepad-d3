@@ -234,12 +234,7 @@ impl ReferenceLineStyle {
     }
 
     /// Set label styling
-    pub fn label_style(
-        mut self,
-        background: Rgba,
-        text_color: Rgba,
-        font_size: f64,
-    ) -> Self {
+    pub fn label_style(mut self, background: Rgba, text_color: Rgba, font_size: f64) -> Self {
         self.label_background = background;
         self.label_color = text_color;
         self.label_font_size = font_size;
@@ -352,12 +347,7 @@ impl ReferenceLine {
     }
 
     /// Create a horizontal band (range)
-    pub fn horizontal_band(
-        value: f64,
-        width: f64,
-        label: impl Into<String>,
-        fill: Rgba,
-    ) -> Self {
+    pub fn horizontal_band(value: f64, width: f64, label: impl Into<String>, fill: Rgba) -> Self {
         Self {
             orientation: ReferenceLineOrientation::Horizontal,
             value,
@@ -370,12 +360,7 @@ impl ReferenceLine {
     }
 
     /// Create a vertical band (range)
-    pub fn vertical_band(
-        value: f64,
-        width: f64,
-        label: impl Into<String>,
-        fill: Rgba,
-    ) -> Self {
+    pub fn vertical_band(value: f64, width: f64, label: impl Into<String>, fill: Rgba) -> Self {
         Self {
             orientation: ReferenceLineOrientation::Vertical,
             value,
@@ -442,7 +427,13 @@ impl ReferenceLine {
     /// Get line endpoints given chart bounds
     ///
     /// Returns ((x1, y1), (x2, y2)) for the line segment.
-    pub fn endpoints(&self, chart_x: f64, chart_y: f64, chart_w: f64, chart_h: f64) -> ((f64, f64), (f64, f64)) {
+    pub fn endpoints(
+        &self,
+        chart_x: f64,
+        chart_y: f64,
+        chart_w: f64,
+        chart_h: f64,
+    ) -> ((f64, f64), (f64, f64)) {
         match self.orientation {
             ReferenceLineOrientation::Horizontal => {
                 let y = self.position;
@@ -462,7 +453,13 @@ impl ReferenceLine {
     /// Get band bounds given chart bounds
     ///
     /// Returns (x, y, width, height) for the band rectangle.
-    pub fn band_bounds(&self, chart_x: f64, chart_y: f64, chart_w: f64, chart_h: f64) -> Option<(f64, f64, f64, f64)> {
+    pub fn band_bounds(
+        &self,
+        chart_x: f64,
+        chart_y: f64,
+        chart_w: f64,
+        chart_h: f64,
+    ) -> Option<(f64, f64, f64, f64)> {
         let band_width = self.band_width?;
 
         Some(match self.orientation {
@@ -484,7 +481,13 @@ impl ReferenceLine {
     /// Get label position given chart bounds
     ///
     /// Returns (x, y) for the label position.
-    pub fn label_position(&self, chart_x: f64, chart_y: f64, chart_w: f64, chart_h: f64) -> (f64, f64) {
+    pub fn label_position(
+        &self,
+        chart_x: f64,
+        chart_y: f64,
+        chart_w: f64,
+        chart_h: f64,
+    ) -> (f64, f64) {
         let ((x1, y1), (x2, y2)) = self.endpoints(chart_x, chart_y, chart_w, chart_h);
         let offset = self.style.label_offset;
 
@@ -492,14 +495,22 @@ impl ReferenceLine {
             (ReferenceLineOrientation::Horizontal, LabelAnchor::Start) => (x1 + offset, y1),
             (ReferenceLineOrientation::Horizontal, LabelAnchor::Center) => ((x1 + x2) / 2.0, y1),
             (ReferenceLineOrientation::Horizontal, LabelAnchor::End) => (x2 - offset, y1),
-            (ReferenceLineOrientation::Horizontal, LabelAnchor::Before) => ((x1 + x2) / 2.0, y1 - offset),
-            (ReferenceLineOrientation::Horizontal, LabelAnchor::After) => ((x1 + x2) / 2.0, y1 + offset),
+            (ReferenceLineOrientation::Horizontal, LabelAnchor::Before) => {
+                ((x1 + x2) / 2.0, y1 - offset)
+            }
+            (ReferenceLineOrientation::Horizontal, LabelAnchor::After) => {
+                ((x1 + x2) / 2.0, y1 + offset)
+            }
 
             (ReferenceLineOrientation::Vertical, LabelAnchor::Start) => (x1, y1 + offset),
             (ReferenceLineOrientation::Vertical, LabelAnchor::Center) => (x1, (y1 + y2) / 2.0),
             (ReferenceLineOrientation::Vertical, LabelAnchor::End) => (x1, y2 - offset),
-            (ReferenceLineOrientation::Vertical, LabelAnchor::Before) => (x1 - offset, (y1 + y2) / 2.0),
-            (ReferenceLineOrientation::Vertical, LabelAnchor::After) => (x1 + offset, (y1 + y2) / 2.0),
+            (ReferenceLineOrientation::Vertical, LabelAnchor::Before) => {
+                (x1 - offset, (y1 + y2) / 2.0)
+            }
+            (ReferenceLineOrientation::Vertical, LabelAnchor::After) => {
+                (x1 + offset, (y1 + y2) / 2.0)
+            }
         }
     }
 }
@@ -608,26 +619,23 @@ impl ReferenceLineSetBuilder {
     /// Add a horizontal threshold line
     pub fn threshold(mut self, value: f64, label: impl Into<String>) -> Self {
         self.set.lines.push(
-            ReferenceLine::horizontal(value, label)
-                .with_style(ReferenceLineStyle::threshold())
+            ReferenceLine::horizontal(value, label).with_style(ReferenceLineStyle::threshold()),
         );
         self
     }
 
     /// Add a horizontal target line
     pub fn target(mut self, value: f64, label: impl Into<String>) -> Self {
-        self.set.lines.push(
-            ReferenceLine::horizontal(value, label)
-                .with_style(ReferenceLineStyle::target())
-        );
+        self.set
+            .lines
+            .push(ReferenceLine::horizontal(value, label).with_style(ReferenceLineStyle::target()));
         self
     }
 
     /// Add an average/mean line
     pub fn average(mut self, value: f64, label: impl Into<String>) -> Self {
         self.set.lines.push(
-            ReferenceLine::horizontal(value, label)
-                .with_style(ReferenceLineStyle::average())
+            ReferenceLine::horizontal(value, label).with_style(ReferenceLineStyle::average()),
         );
         self
     }
@@ -636,7 +644,7 @@ impl ReferenceLineSetBuilder {
     pub fn baseline(mut self, value: f64) -> Self {
         self.set.lines.push(
             ReferenceLine::horizontal(value, "")
-                .with_style(ReferenceLineStyle::baseline().show_label(false))
+                .with_style(ReferenceLineStyle::baseline().show_label(false)),
         );
         self
     }
@@ -687,12 +695,8 @@ mod tests {
 
     #[test]
     fn test_reference_line_band() {
-        let band = ReferenceLine::horizontal_band(
-            75.0,
-            10.0,
-            "Safe Zone",
-            Rgba::new(0.0, 1.0, 0.0, 0.2),
-        );
+        let band =
+            ReferenceLine::horizontal_band(75.0, 10.0, "Safe Zone", Rgba::new(0.0, 1.0, 0.0, 0.2));
 
         assert!(band.is_band());
         assert_eq!(band.band_width, Some(10.0));
@@ -711,8 +715,7 @@ mod tests {
 
     #[test]
     fn test_reference_line_band_bounds() {
-        let band = ReferenceLine::horizontal_band(50.0, 20.0, "", Rgba::RED)
-            .with_position(50.0);
+        let band = ReferenceLine::horizontal_band(50.0, 20.0, "", Rgba::RED).with_position(50.0);
 
         let bounds = band.band_bounds(0.0, 0.0, 100.0, 100.0);
         assert!(bounds.is_some());
@@ -800,8 +803,7 @@ mod tests {
 
     #[test]
     fn test_reference_line_label_position() {
-        let line = ReferenceLine::horizontal(50.0, "Label")
-            .with_position(50.0);
+        let line = ReferenceLine::horizontal(50.0, "Label").with_position(50.0);
 
         let (lx, ly) = line.label_position(0.0, 0.0, 100.0, 100.0);
 

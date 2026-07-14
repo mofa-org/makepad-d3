@@ -10,7 +10,13 @@ keywords = ["visualization", "charts", "d3", "makepad", "gpu"]
 categories = ["visualization", "gui", "graphics"]
 
 [dependencies]
-makepad-widgets = { git = "https://github.com/makepad/makepad", branch = "main" }
+# Makepad 2.0 (Script/Splash system) — requires a sibling checkout of
+# https://github.com/makepad/makepad `dev` branch at ../makepad
+# (tested @ 4f9ce7a8bb3fd19e5c61dcf13edd2e6d4a04cefc). A git dependency is not
+# possible right now: the makepad repo vendors a pre-2.0 copy under old/, so
+# cargo sees two packages named makepad-widgets and refuses the git source.
+# Integration design: docs/SPLASH_INTEGRATION_DESIGN.md
+makepad-widgets = { path = "../makepad/widgets", version = "2.0.0" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -28,9 +34,20 @@ full = []
 name = "scale_bench"
 harness = false
 
+[[bench]]
+name = "render3d_bench"
+harness = false
+
 [[example]]
-name = "chart_zoo"
-path = "examples/chart_zoo/src/main.rs"
+name = "splash_demo"
+path = "examples/splash_demo/src/main.rs"
+
+# NOTE: chart_zoo predates the makepad 2.0 (Splash) migration and does not
+# compile against it yet — it is the porting backlog for the d3.* namespace
+# (docs/SPLASH_INTEGRATION_DESIGN.md §11 Phase 4).
+# [[example]]
+# name = "chart_zoo"
+# path = "examples/chart_zoo/src/main.rs"
 
 [profile.release]
 lto = true

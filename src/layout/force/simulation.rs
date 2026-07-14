@@ -2,9 +2,9 @@
 //!
 //! The simulation engine that manages nodes and applies forces.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use super::forces::Force;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// A node in the force simulation
 ///
@@ -486,9 +486,7 @@ mod tests {
 
     #[test]
     fn test_force_simulation_new() {
-        let nodes: Vec<SimulationNode> = (0..5)
-            .map(|i| SimulationNode::new(i))
-            .collect();
+        let nodes: Vec<SimulationNode> = (0..5).map(|i| SimulationNode::new(i)).collect();
 
         let sim = ForceSimulation::new(nodes);
         assert_eq!(sim.node_count(), 5);
@@ -498,9 +496,7 @@ mod tests {
 
     #[test]
     fn test_force_simulation_tick() {
-        let nodes: Vec<SimulationNode> = (0..3)
-            .map(|i| SimulationNode::new(i))
-            .collect();
+        let nodes: Vec<SimulationNode> = (0..3).map(|i| SimulationNode::new(i)).collect();
 
         let mut sim = ForceSimulation::new(nodes);
         let initial_alpha = sim.get_alpha();
@@ -513,9 +509,7 @@ mod tests {
 
     #[test]
     fn test_force_simulation_tick_n() {
-        let nodes: Vec<SimulationNode> = (0..3)
-            .map(|i| SimulationNode::new(i))
-            .collect();
+        let nodes: Vec<SimulationNode> = (0..3).map(|i| SimulationNode::new(i)).collect();
 
         let mut sim = ForceSimulation::new(nodes);
         sim.tick_n(100);
@@ -526,9 +520,7 @@ mod tests {
 
     #[test]
     fn test_force_simulation_run() {
-        let nodes: Vec<SimulationNode> = (0..3)
-            .map(|i| SimulationNode::new(i))
-            .collect();
+        let nodes: Vec<SimulationNode> = (0..3).map(|i| SimulationNode::new(i)).collect();
 
         let mut sim = ForceSimulation::new(nodes);
         let iterations = sim.run(1000);
@@ -539,9 +531,7 @@ mod tests {
 
     #[test]
     fn test_force_simulation_restart() {
-        let nodes: Vec<SimulationNode> = (0..3)
-            .map(|i| SimulationNode::new(i))
-            .collect();
+        let nodes: Vec<SimulationNode> = (0..3).map(|i| SimulationNode::new(i)).collect();
 
         let mut sim = ForceSimulation::new(nodes);
         sim.tick_n(100);
@@ -553,9 +543,7 @@ mod tests {
 
     #[test]
     fn test_force_simulation_stop() {
-        let nodes: Vec<SimulationNode> = (0..3)
-            .map(|i| SimulationNode::new(i))
-            .collect();
+        let nodes: Vec<SimulationNode> = (0..3).map(|i| SimulationNode::new(i)).collect();
 
         let mut sim = ForceSimulation::new(nodes);
         sim.stop();

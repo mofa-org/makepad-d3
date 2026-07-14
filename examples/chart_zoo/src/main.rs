@@ -334,6 +334,19 @@ live_design! {
                         }
                     }
 
+                    // Voronoi Stippling in its own row
+                    <View> {
+                        width: Fill,
+                        height: Fit,
+                        flow: Right,
+                        spacing: 0,
+
+                        voronoi_stippling_card = <ChartCard> {
+                            voronoi_stippling = <VoronoiStipplingWidget> { width: Fill, height: Fill }
+                            <ChartTitle> { label = { label = { text: "Voronoi Stippling" } } }
+                        }
+                    }
+
                     // Row 3c: Color Space Demos
                     <SectionHeader> { text: "Color Space Interpolation" }
                     <View> {
@@ -2229,6 +2242,95 @@ live_design! {
                     }
                 }
 
+                // ============ Voronoi Stippling Detail Page ============
+                voronoi_stippling_detail_page = <ScrollXYView> {
+                    visible: false,
+                    flow: Down,
+                    spacing: 0,
+                    padding: {left: 20, right: 20, top: 60, bottom: 20},
+
+                    <View> {
+                        width: Fill, height: Fit, flow: Right, spacing: 20, margin: {bottom: 20}, align: {y: 0.5},
+                        <Label> {
+                            text: "Voronoi Stippling"
+                            draw_text: { color: #333333, text_style: <FONT_DATA> { font_size: 24.0 } }
+                        }
+                    }
+
+                    <SectionHeader> { text: "Weighted Lloyd's Algorithm" }
+                    <RoundedView> {
+                        width: Fill,
+                        height: Fit,
+                        margin: {bottom: 12},
+                        padding: {left: 12, right: 12, top: 10, bottom: 10},
+                        flow: Down,
+                        spacing: 8,
+                        show_bg: true,
+                        draw_bg: { color: #f6f7f9, border_radius: 6.0 },
+
+                        <Label> {
+                            text: "Stippling Controls"
+                            draw_text: { color: #444444, text_style: <FONT_DATA> { font_size: 12.0 } }
+                        }
+
+                        stippling_density_slider = <Slider> {
+                            width: Fill,
+                            height: 48,
+                            min: 10.0,
+                            max: 1000.0,
+                            step: 10.0,
+                            text: "Density (higher = more dots)"
+                        }
+                        stippling_size_slider = <Slider> {
+                            width: Fill,
+                            height: 48,
+                            min: 0.6,
+                            max: 2.4,
+                            step: 0.1,
+                            text: "Dot size"
+                        }
+                        <View> {
+                            width: Fill,
+                            height: Fit,
+                            flow: Right,
+                            align: {x: 0.0, y: 0.5},
+                            stippling_restart_button = <Button> {
+                                text: "Restart Stippling"
+                                width: Fit,
+                                height: Fit,
+                                padding: {left: 14, right: 14, top: 8, bottom: 8},
+                                draw_bg: {
+                                    instance color: #4A90D9,
+                                    instance color_hover: #3A7BC8,
+                                    instance border_radius: 6.0,
+                                    fn pixel(self) -> vec4 {
+                                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                                        let color = mix(self.color, self.color_hover, self.hover);
+                                        sdf.box(0., 0., self.rect_size.x, self.rect_size.y, self.border_radius);
+                                        sdf.fill(color);
+                                        return sdf.result;
+                                    }
+                                }
+                                draw_text: {
+                                    color: #ffffff,
+                                    text_style: <FONT_DATA> { font_size: 13.0 }
+                                }
+                            }
+                        }
+                    }
+                    <DetailChartCard> {
+                        height: 600,
+                        voronoi_stippling_detail = <VoronoiStipplingWidget> { width: Fill, height: Fill }
+                    }
+                    <View> {
+                        width: Fill, height: Fit, margin: {top: 10},
+                        <Label> {
+                            text: "Voronoi stippling creates dot patterns that approximate grayscale images.\nBased on 'Weighted Voronoi Stippling' by Adrian Secord.\nPoints are distributed using rejection sampling and iteratively relaxed using Lloyd's algorithm."
+                            draw_text: { color: #555555, text_style: <FONT_DATA> { font_size: 13.0 } }
+                        }
+                    }
+                }
+
                 // ============ Floating Back Button (stays on top-right) ============
                 <View> {
                     width: Fill,
@@ -2292,6 +2394,7 @@ pub enum CurrentPage {
     WordCloudDetail,
     EdgeBundlingDetail,
     ApolloniusDetail,
+    VoronoiStipplingDetail,
 }
 
 #[derive(Live, LiveHook)]
@@ -2328,156 +2431,174 @@ impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
         // Initialize front page treemap on first action (to avoid stack overflow during startup)
         if !self.front_treemap_initialized {
-            self.ui.treemap_widget(id!(treemap)).initialize_default(cx);
+            self.ui.treemap_widget(ids!(treemap)).initialize_default(cx);
             self.front_treemap_initialized = true;
         }
 
         // Handle chart card clicks to navigate to detail pages
         // Basic charts
-        if self.ui.view(id!(bar_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(bar_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::BarDetail);
         }
-        if self.ui.view(id!(line_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(line_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::LineDetail);
         }
-        if self.ui.view(id!(pie_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(pie_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::PieDetail);
         }
-        if self.ui.view(id!(scatter_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(scatter_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ScatterDetail);
         }
-        if self.ui.view(id!(area_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(area_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::AreaDetail);
         }
 
         // D3 advanced visualization clicks
-        if self.ui.view(id!(force_graph_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(force_graph_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ForceGraphDetail);
         }
-        if self.ui.view(id!(treemap_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(treemap_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::TreemapDetail);
         }
-        if self.ui.view(id!(circle_pack_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(circle_pack_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::CirclePackDetail);
         }
-        if self.ui.view(id!(sunburst_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(sunburst_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::SunburstDetail);
         }
-        if self.ui.view(id!(packed_bubble_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(packed_bubble_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::PackedBubbleDetail);
         }
 
         // Geographic
-        if self.ui.view(id!(globe_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(globe_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::GlobeDetail);
         }
 
         // Statistical charts
-        if self.ui.view(id!(histogram_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(histogram_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::HistogramDetail);
         }
-        if self.ui.view(id!(box_plot_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(box_plot_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::BoxPlotDetail);
         }
-        if self.ui.view(id!(heatmap_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(heatmap_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::HeatmapDetail);
         }
 
         // Financial charts
-        if self.ui.view(id!(candlestick_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(candlestick_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::CandlestickDetail);
         }
-        if self.ui.view(id!(stacked_bar_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(stacked_bar_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::StackedBarDetail);
         }
-        if self.ui.view(id!(stacked_area_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(stacked_area_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::StackedAreaDetail);
         }
 
         // Specialized charts
-        if self.ui.view(id!(radial_bar_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(radial_bar_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::RadialBarDetail);
         }
-        if self.ui.view(id!(donut_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(donut_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::DonutDetail);
         }
-        if self.ui.view(id!(multi_line_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(multi_line_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::MultiLineDetail);
         }
-        if self.ui.view(id!(horizontal_bar_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(horizontal_bar_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::HorizontalBarDetail);
         }
 
         // Network/Flow charts
-        if self.ui.view(id!(chord_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(chord_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ChordDetail);
         }
-        if self.ui.view(id!(sankey_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(sankey_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::SankeyDetail);
         }
 
         // Multi-dimensional & Hierarchical charts
-        if self.ui.view(id!(radar_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(radar_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::RadarDetail);
         }
-        if self.ui.view(id!(tree_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(tree_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::TreeDetail);
         }
-        if self.ui.view(id!(parallel_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(parallel_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ParallelDetail);
         }
 
         // Scientific charts
-        if self.ui.view(id!(contour_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(contour_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ContourDetail);
         }
-        if self.ui.view(id!(quiver_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(quiver_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::QuiverDetail);
         }
-        if self.ui.view(id!(surface_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(surface_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::SurfaceDetail);
         }
 
         // New chart types
-        if self.ui.view(id!(beeswarm_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(beeswarm_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::BeeswarmDetail);
         }
-        if self.ui.view(id!(bubble_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(bubble_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::BubbleDetail);
         }
-        if self.ui.view(id!(hexbin_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(hexbin_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::HexbinDetail);
         }
-        if self.ui.view(id!(calendar_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(calendar_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::CalendarDetail);
         }
-        if self.ui.view(id!(streamgraph_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(streamgraph_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::StreamgraphDetail);
         }
-        if self.ui.view(id!(ridgeline_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(ridgeline_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::RidgelineDetail);
         }
-        if self.ui.view(id!(horizon_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(horizon_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::HorizonDetail);
         }
-        if self.ui.view(id!(slope_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(slope_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::SlopeDetail);
         }
-        if self.ui.view(id!(arc_diagram_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(arc_diagram_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ArcDiagramDetail);
         }
-        if self.ui.view(id!(word_cloud_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(word_cloud_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::WordCloudDetail);
         }
-        if self.ui.view(id!(edge_bundling_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(edge_bundling_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::EdgeBundlingDetail);
         }
-        if self.ui.view(id!(apollonius_card)).finger_up(actions).is_some() {
+        if self.ui.view(ids!(apollonius_card)).finger_up(actions).is_some() {
             self.navigate_to(cx, CurrentPage::ApolloniusDetail);
+        }
+        if self.ui.view(ids!(voronoi_stippling_card)).finger_up(actions).is_some() {
+            self.navigate_to(cx, CurrentPage::VoronoiStipplingDetail);
+        }
+
+        if let Some(value) = self.ui.slider(ids!(stippling_density_slider)).slided(actions) {
+            // Invert: higher slider value = denser (lower divisor)
+            let divisor = 1010.0 - value;
+            self.ui.voronoi_stippling_widget(ids!(voronoi_stippling_detail))
+                .set_points_divisor(cx, divisor);
+        }
+        if let Some(value) = self.ui.slider(ids!(stippling_size_slider)).slided(actions) {
+            self.ui.voronoi_stippling_widget(ids!(voronoi_stippling_detail))
+                .set_point_radius(cx, value);
+        }
+        if self.ui.button(ids!(stippling_restart_button)).clicked(actions) {
+            self.ui.voronoi_stippling_widget(ids!(voronoi_stippling_detail))
+                .replay_animation(cx);
         }
 
         // Handle floating back button
-        if self.ui.button(id!(floating_back_button)).clicked(actions) {
+        if self.ui.button(ids!(floating_back_button)).clicked(actions) {
             self.navigate_to(cx, CurrentPage::Main);
         }
     }
@@ -2488,137 +2609,142 @@ impl App {
         self.current_page = page;
 
         // Hide all pages
-        self.ui.view(id!(main_page)).set_visible(cx, false);
-        self.ui.view(id!(line_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(bar_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(pie_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(scatter_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(area_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(force_graph_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(treemap_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(circle_pack_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(sunburst_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(packed_bubble_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(globe_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(histogram_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(box_plot_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(heatmap_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(candlestick_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(radial_bar_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(donut_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(multi_line_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(horizontal_bar_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(stacked_bar_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(stacked_area_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(chord_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(sankey_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(radar_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(tree_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(parallel_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(contour_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(quiver_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(surface_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(beeswarm_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(bubble_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(hexbin_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(calendar_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(streamgraph_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(ridgeline_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(horizon_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(slope_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(arc_diagram_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(word_cloud_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(edge_bundling_detail_page)).set_visible(cx, false);
-        self.ui.view(id!(apollonius_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(main_page)).set_visible(cx, false);
+        self.ui.view(ids!(line_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(bar_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(pie_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(scatter_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(area_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(force_graph_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(treemap_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(circle_pack_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(sunburst_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(packed_bubble_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(globe_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(histogram_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(box_plot_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(heatmap_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(candlestick_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(radial_bar_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(donut_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(multi_line_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(horizontal_bar_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(stacked_bar_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(stacked_area_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(chord_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(sankey_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(radar_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(tree_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(parallel_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(contour_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(quiver_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(surface_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(beeswarm_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(bubble_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(hexbin_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(calendar_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(streamgraph_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(ridgeline_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(horizon_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(slope_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(arc_diagram_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(word_cloud_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(edge_bundling_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(apollonius_detail_page)).set_visible(cx, false);
+        self.ui.view(ids!(voronoi_stippling_detail_page)).set_visible(cx, false);
 
         // Show/hide floating back button (visible on detail pages, hidden on main)
         let show_floating_back = page != CurrentPage::Main;
-        self.ui.button(id!(floating_back_button)).set_visible(cx, show_floating_back);
+        self.ui.button(ids!(floating_back_button)).set_visible(cx, show_floating_back);
 
         // Show the target page
         match page {
             CurrentPage::Main => {
-                self.ui.view(id!(main_page)).set_visible(cx, true);
+                self.ui.view(ids!(main_page)).set_visible(cx, true);
                 // Initialize front page treemap
-                self.ui.treemap_widget(id!(treemap)).initialize_default(cx);
+                self.ui.treemap_widget(ids!(treemap)).initialize_default(cx);
             }
-            CurrentPage::LineDetail => self.ui.view(id!(line_detail_page)).set_visible(cx, true),
-            CurrentPage::BarDetail => self.ui.view(id!(bar_detail_page)).set_visible(cx, true),
-            CurrentPage::PieDetail => self.ui.view(id!(pie_detail_page)).set_visible(cx, true),
-            CurrentPage::ScatterDetail => self.ui.view(id!(scatter_detail_page)).set_visible(cx, true),
-            CurrentPage::AreaDetail => self.ui.view(id!(area_detail_page)).set_visible(cx, true),
-            CurrentPage::ForceGraphDetail => self.ui.view(id!(force_graph_detail_page)).set_visible(cx, true),
+            CurrentPage::LineDetail => self.ui.view(ids!(line_detail_page)).set_visible(cx, true),
+            CurrentPage::BarDetail => self.ui.view(ids!(bar_detail_page)).set_visible(cx, true),
+            CurrentPage::PieDetail => self.ui.view(ids!(pie_detail_page)).set_visible(cx, true),
+            CurrentPage::ScatterDetail => self.ui.view(ids!(scatter_detail_page)).set_visible(cx, true),
+            CurrentPage::AreaDetail => self.ui.view(ids!(area_detail_page)).set_visible(cx, true),
+            CurrentPage::ForceGraphDetail => self.ui.view(ids!(force_graph_detail_page)).set_visible(cx, true),
             CurrentPage::TreemapDetail => {
-                self.ui.view(id!(treemap_detail_page)).set_visible(cx, true);
-                self.ui.treemap_widget(id!(treemap_binary)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Binary);
-                self.ui.treemap_widget(id!(treemap_squarify)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Squarify);
-                self.ui.treemap_widget(id!(treemap_slicedice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::SliceDice);
-                self.ui.treemap_widget(id!(treemap_slice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Slice);
-                self.ui.treemap_widget(id!(treemap_dice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Dice);
+                self.ui.view(ids!(treemap_detail_page)).set_visible(cx, true);
+                self.ui.treemap_widget(ids!(treemap_binary)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Binary);
+                self.ui.treemap_widget(ids!(treemap_squarify)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Squarify);
+                self.ui.treemap_widget(ids!(treemap_slicedice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::SliceDice);
+                self.ui.treemap_widget(ids!(treemap_slice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Slice);
+                self.ui.treemap_widget(ids!(treemap_dice)).initialize_with_tiling(cx, makepad_d3::layout::hierarchy::TilingMethod::Dice);
             }
-            CurrentPage::CirclePackDetail => self.ui.view(id!(circle_pack_detail_page)).set_visible(cx, true),
+            CurrentPage::CirclePackDetail => self.ui.view(ids!(circle_pack_detail_page)).set_visible(cx, true),
             CurrentPage::SunburstDetail => {
-                self.ui.view(id!(sunburst_detail_page)).set_visible(cx, true);
-                self.ui.sunburst_widget(id!(sunburst_flare)).initialize_flare_data(cx);
+                self.ui.view(ids!(sunburst_detail_page)).set_visible(cx, true);
+                self.ui.sunburst_widget(ids!(sunburst_flare)).initialize_flare_data(cx);
             }
-            CurrentPage::PackedBubbleDetail => self.ui.view(id!(packed_bubble_detail_page)).set_visible(cx, true),
-            CurrentPage::GlobeDetail => self.ui.view(id!(globe_detail_page)).set_visible(cx, true),
-            CurrentPage::HistogramDetail => self.ui.view(id!(histogram_detail_page)).set_visible(cx, true),
-            CurrentPage::BoxPlotDetail => self.ui.view(id!(box_plot_detail_page)).set_visible(cx, true),
-            CurrentPage::HeatmapDetail => self.ui.view(id!(heatmap_detail_page)).set_visible(cx, true),
-            CurrentPage::CandlestickDetail => self.ui.view(id!(candlestick_detail_page)).set_visible(cx, true),
-            CurrentPage::RadialBarDetail => self.ui.view(id!(radial_bar_detail_page)).set_visible(cx, true),
-            CurrentPage::DonutDetail => self.ui.view(id!(donut_detail_page)).set_visible(cx, true),
-            CurrentPage::MultiLineDetail => self.ui.view(id!(multi_line_detail_page)).set_visible(cx, true),
-            CurrentPage::HorizontalBarDetail => self.ui.view(id!(horizontal_bar_detail_page)).set_visible(cx, true),
-            CurrentPage::StackedBarDetail => self.ui.view(id!(stacked_bar_detail_page)).set_visible(cx, true),
-            CurrentPage::StackedAreaDetail => self.ui.view(id!(stacked_area_detail_page)).set_visible(cx, true),
+            CurrentPage::PackedBubbleDetail => self.ui.view(ids!(packed_bubble_detail_page)).set_visible(cx, true),
+            CurrentPage::GlobeDetail => self.ui.view(ids!(globe_detail_page)).set_visible(cx, true),
+            CurrentPage::HistogramDetail => self.ui.view(ids!(histogram_detail_page)).set_visible(cx, true),
+            CurrentPage::BoxPlotDetail => self.ui.view(ids!(box_plot_detail_page)).set_visible(cx, true),
+            CurrentPage::HeatmapDetail => self.ui.view(ids!(heatmap_detail_page)).set_visible(cx, true),
+            CurrentPage::CandlestickDetail => self.ui.view(ids!(candlestick_detail_page)).set_visible(cx, true),
+            CurrentPage::RadialBarDetail => self.ui.view(ids!(radial_bar_detail_page)).set_visible(cx, true),
+            CurrentPage::DonutDetail => self.ui.view(ids!(donut_detail_page)).set_visible(cx, true),
+            CurrentPage::MultiLineDetail => self.ui.view(ids!(multi_line_detail_page)).set_visible(cx, true),
+            CurrentPage::HorizontalBarDetail => self.ui.view(ids!(horizontal_bar_detail_page)).set_visible(cx, true),
+            CurrentPage::StackedBarDetail => self.ui.view(ids!(stacked_bar_detail_page)).set_visible(cx, true),
+            CurrentPage::StackedAreaDetail => self.ui.view(ids!(stacked_area_detail_page)).set_visible(cx, true),
             CurrentPage::ChordDetail => {
-                self.ui.view(id!(chord_detail_page)).set_visible(cx, true);
+                self.ui.view(ids!(chord_detail_page)).set_visible(cx, true);
                 // Initialize the four chord diagram variants
-                self.ui.chord_diagram_widget(id!(chord_hair)).initialize_hair_color_data(cx);
-                self.ui.chord_diagram_widget(id!(chord_phone)).initialize_phone_data(cx);
-                self.ui.chord_diagram_widget(id!(chord_debt)).initialize_debt_data(cx);
-                self.ui.chord_diagram_widget(id!(chord_dependency)).initialize_dependency_data(cx);
+                self.ui.chord_diagram_widget(ids!(chord_hair)).initialize_hair_color_data(cx);
+                self.ui.chord_diagram_widget(ids!(chord_phone)).initialize_phone_data(cx);
+                self.ui.chord_diagram_widget(ids!(chord_debt)).initialize_debt_data(cx);
+                self.ui.chord_diagram_widget(ids!(chord_dependency)).initialize_dependency_data(cx);
             }
             CurrentPage::SankeyDetail => {
-                self.ui.view(id!(sankey_detail_page)).set_visible(cx, true);
+                self.ui.view(ids!(sankey_detail_page)).set_visible(cx, true);
                 // Initialize the three Sankey diagram variants
-                self.ui.sankey_widget(id!(sankey_energy)).initialize_energy_uk_data(cx);
-                self.ui.sankey_widget(id!(sankey_titanic)).initialize_titanic_data(cx);
-                self.ui.sankey_widget(id!(sankey_nike)).initialize_nike_data(cx);
+                self.ui.sankey_widget(ids!(sankey_energy)).initialize_energy_uk_data(cx);
+                self.ui.sankey_widget(ids!(sankey_titanic)).initialize_titanic_data(cx);
+                self.ui.sankey_widget(ids!(sankey_nike)).initialize_nike_data(cx);
             }
-            CurrentPage::RadarDetail => self.ui.view(id!(radar_detail_page)).set_visible(cx, true),
+            CurrentPage::RadarDetail => self.ui.view(ids!(radar_detail_page)).set_visible(cx, true),
             CurrentPage::TreeDetail => {
-                self.ui.view(id!(tree_detail_page)).set_visible(cx, true);
-                self.ui.tree_chart_widget(id!(tree_flare)).initialize_flare_data(cx);
-                self.ui.tree_chart_widget(id!(tree_cluster)).initialize_random_data(cx);
+                self.ui.view(ids!(tree_detail_page)).set_visible(cx, true);
+                self.ui.tree_chart_widget(ids!(tree_flare)).initialize_flare_data(cx);
+                self.ui.tree_chart_widget(ids!(tree_cluster)).initialize_random_data(cx);
             }
-            CurrentPage::ParallelDetail => self.ui.view(id!(parallel_detail_page)).set_visible(cx, true),
+            CurrentPage::ParallelDetail => self.ui.view(ids!(parallel_detail_page)).set_visible(cx, true),
             CurrentPage::ContourDetail => {
-                self.ui.view(id!(contour_detail_page)).set_visible(cx, true);
+                self.ui.view(ids!(contour_detail_page)).set_visible(cx, true);
                 // Initialize the original viridis-style contour
-                self.ui.contour_chart_widget(id!(contour_original)).initialize_original_style(cx);
+                self.ui.contour_chart_widget(ids!(contour_original)).initialize_original_style(cx);
                 // Initialize the GeoTIFF-style contour
-                self.ui.contour_chart_widget(id!(contour_geotiff)).initialize_geotiff_style(cx);
+                self.ui.contour_chart_widget(ids!(contour_geotiff)).initialize_geotiff_style(cx);
             }
-            CurrentPage::QuiverDetail => self.ui.view(id!(quiver_detail_page)).set_visible(cx, true),
-            CurrentPage::SurfaceDetail => self.ui.view(id!(surface_detail_page)).set_visible(cx, true),
-            CurrentPage::BeeswarmDetail => self.ui.view(id!(beeswarm_detail_page)).set_visible(cx, true),
-            CurrentPage::BubbleDetail => self.ui.view(id!(bubble_detail_page)).set_visible(cx, true),
-            CurrentPage::HexbinDetail => self.ui.view(id!(hexbin_detail_page)).set_visible(cx, true),
-            CurrentPage::CalendarDetail => self.ui.view(id!(calendar_detail_page)).set_visible(cx, true),
-            CurrentPage::StreamgraphDetail => self.ui.view(id!(streamgraph_detail_page)).set_visible(cx, true),
-            CurrentPage::RidgelineDetail => self.ui.view(id!(ridgeline_detail_page)).set_visible(cx, true),
-            CurrentPage::HorizonDetail => self.ui.view(id!(horizon_detail_page)).set_visible(cx, true),
-            CurrentPage::SlopeDetail => self.ui.view(id!(slope_detail_page)).set_visible(cx, true),
-            CurrentPage::ArcDiagramDetail => self.ui.view(id!(arc_diagram_detail_page)).set_visible(cx, true),
-            CurrentPage::WordCloudDetail => self.ui.view(id!(word_cloud_detail_page)).set_visible(cx, true),
-            CurrentPage::EdgeBundlingDetail => self.ui.view(id!(edge_bundling_detail_page)).set_visible(cx, true),
+            CurrentPage::QuiverDetail => self.ui.view(ids!(quiver_detail_page)).set_visible(cx, true),
+            CurrentPage::SurfaceDetail => self.ui.view(ids!(surface_detail_page)).set_visible(cx, true),
+            CurrentPage::BeeswarmDetail => self.ui.view(ids!(beeswarm_detail_page)).set_visible(cx, true),
+            CurrentPage::BubbleDetail => self.ui.view(ids!(bubble_detail_page)).set_visible(cx, true),
+            CurrentPage::HexbinDetail => self.ui.view(ids!(hexbin_detail_page)).set_visible(cx, true),
+            CurrentPage::CalendarDetail => self.ui.view(ids!(calendar_detail_page)).set_visible(cx, true),
+            CurrentPage::StreamgraphDetail => self.ui.view(ids!(streamgraph_detail_page)).set_visible(cx, true),
+            CurrentPage::RidgelineDetail => self.ui.view(ids!(ridgeline_detail_page)).set_visible(cx, true),
+            CurrentPage::HorizonDetail => self.ui.view(ids!(horizon_detail_page)).set_visible(cx, true),
+            CurrentPage::SlopeDetail => self.ui.view(ids!(slope_detail_page)).set_visible(cx, true),
+            CurrentPage::ArcDiagramDetail => self.ui.view(ids!(arc_diagram_detail_page)).set_visible(cx, true),
+            CurrentPage::WordCloudDetail => self.ui.view(ids!(word_cloud_detail_page)).set_visible(cx, true),
+            CurrentPage::EdgeBundlingDetail => self.ui.view(ids!(edge_bundling_detail_page)).set_visible(cx, true),
             CurrentPage::ApolloniusDetail => {
-                self.ui.view(id!(apollonius_detail_page)).set_visible(cx, true);
-                self.ui.apollonius_problem_widget(id!(apollonius_single)).initialize_single_solution(cx);
-                self.ui.apollonius_problem_widget(id!(apollonius_all)).initialize_all_solutions(cx);
+                self.ui.view(ids!(apollonius_detail_page)).set_visible(cx, true);
+                self.ui.apollonius_problem_widget(ids!(apollonius_single)).initialize_single_solution(cx);
+                self.ui.apollonius_problem_widget(ids!(apollonius_all)).initialize_all_solutions(cx);
+            }
+            CurrentPage::VoronoiStipplingDetail => {
+                self.ui.view(ids!(voronoi_stippling_detail_page)).set_visible(cx, true);
+                // Widget self-initializes on draw
             }
         }
 

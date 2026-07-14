@@ -2,9 +2,17 @@
 //!
 //! Displays 3D surface data with perspective projection and color mapping.
 //! GPU-accelerated with rotation animation and proper depth sorting.
+//!
+//! This implementation uses the makepad_d3::render3d module for:
+//! - Pre-computed mesh geometry
+//! - Camera-based transforms
+//! - GPU shader lighting and colormaps
 
 use makepad_widgets::*;
-use std::f64::consts::PI;
+use makepad_d3::render3d::{
+    Surface3D, SurfaceData, Colormap,
+    CameraEvent, DrawSurface3D, DrawWireframe3D,
+};
 use super::draw_primitives::{DrawChartLine, DrawTriangle};
 use super::animation::{ChartAnimator, EasingType};
 
@@ -13,6 +21,8 @@ live_design! {
     use link::shaders::*;
     use super::draw_primitives::DrawChartLine;
     use super::draw_primitives::DrawTriangle;
+    use crate::render3d::draw::DrawSurface3D;
+    use crate::render3d::draw::DrawWireframe3D;
 
     pub SurfacePlotWidget = {{SurfacePlotWidget}} {
         width: Fill,
@@ -20,7 +30,7 @@ live_design! {
     }
 }
 
-/// Color map types for surface visualization
+/// Color map types for surface visualization (legacy compatibility)
 #[derive(Clone, Copy, Debug, Default)]
 pub enum ColorMap {
     #[default]
@@ -34,163 +44,22 @@ pub enum ColorMap {
 }
 
 impl ColorMap {
-    pub fn get_color(&self, t: f64) -> Vec4 {
-        let t = t.clamp(0.0, 1.0) as f32;
-
+    /// Convert to render3d Colormap
+    pub fn to_colormap(&self) -> Colormap {
         match self {
-            ColorMap::Viridis => {
-                if t < 0.25 {
-                    let s = t / 0.25;
-                    vec4(0.267, 0.004 + s * 0.25, 0.329 + s * 0.15, 1.0)
-                } else if t < 0.5 {
-                    let s = (t - 0.25) / 0.25;
-                    vec4(0.267 + s * 0.02, 0.254 + s * 0.25, 0.479 - s * 0.05, 1.0)
-                } else if t < 0.75 {
-                    let s = (t - 0.5) / 0.25;
-                    vec4(0.287 + s * 0.2, 0.504 + s * 0.2, 0.429 - s * 0.15, 1.0)
-                } else {
-                    let s = (t - 0.75) / 0.25;
-                    vec4(0.487 + s * 0.45, 0.704 + s * 0.15, 0.279 - s * 0.1, 1.0)
-                }
-            }
-            ColorMap::Plasma => {
-                if t < 0.33 {
-                    let s = t / 0.33;
-                    vec4(0.05 + s * 0.45, 0.03 + s * 0.02, 0.53 + s * 0.2, 1.0)
-                } else if t < 0.66 {
-                    let s = (t - 0.33) / 0.33;
-                    vec4(0.5 + s * 0.35, 0.05 + s * 0.25, 0.73 - s * 0.35, 1.0)
-                } else {
-                    let s = (t - 0.66) / 0.34;
-                    vec4(0.85 + s * 0.1, 0.3 + s * 0.55, 0.38 - s * 0.35, 1.0)
-                }
-            }
-            ColorMap::Inferno => {
-                if t < 0.33 {
-                    let s = t / 0.33;
-                    vec4(0.0 + s * 0.25, 0.0 + s * 0.05, 0.01 + s * 0.35, 1.0)
-                } else if t < 0.66 {
-                    let s = (t - 0.33) / 0.33;
-                    vec4(0.25 + s * 0.55, 0.05 + s * 0.1, 0.36 - s * 0.15, 1.0)
-                } else {
-                    let s = (t - 0.66) / 0.34;
-                    vec4(0.8 + s * 0.18, 0.15 + s * 0.75, 0.21 - s * 0.2, 1.0)
-                }
-            }
-            ColorMap::Magma => {
-                if t < 0.33 {
-                    let s = t / 0.33;
-                    vec4(0.0 + s * 0.2, 0.0 + s * 0.03, 0.02 + s * 0.3, 1.0)
-                } else if t < 0.66 {
-                    let s = (t - 0.33) / 0.33;
-                    vec4(0.2 + s * 0.55, 0.03 + s * 0.15, 0.32 + s * 0.1, 1.0)
-                } else {
-                    let s = (t - 0.66) / 0.34;
-                    vec4(0.75 + s * 0.23, 0.18 + s * 0.7, 0.42 + s * 0.2, 1.0)
-                }
-            }
-            ColorMap::CoolWarm => {
-                // Blue (cold) to white to red (hot)
-                if t < 0.5 {
-                    let s = t / 0.5;
-                    vec4(0.2 + s * 0.8, 0.4 + s * 0.6, 0.9 + s * 0.1, 1.0)
-                } else {
-                    let s = (t - 0.5) / 0.5;
-                    vec4(1.0, 1.0 - s * 0.6, 1.0 - s * 0.8, 1.0)
-                }
-            }
-            ColorMap::Terrain => {
-                // Deep blue -> green -> yellow -> brown -> white
-                if t < 0.2 {
-                    let s = t / 0.2;
-                    vec4(0.2, 0.3 + s * 0.4, 0.5 + s * 0.3, 1.0)
-                } else if t < 0.4 {
-                    let s = (t - 0.2) / 0.2;
-                    vec4(0.2 + s * 0.3, 0.7 - s * 0.1, 0.8 - s * 0.6, 1.0)
-                } else if t < 0.6 {
-                    let s = (t - 0.4) / 0.2;
-                    vec4(0.5 + s * 0.4, 0.6 + s * 0.3, 0.2, 1.0)
-                } else if t < 0.8 {
-                    let s = (t - 0.6) / 0.2;
-                    vec4(0.9 - s * 0.3, 0.9 - s * 0.3, 0.2 + s * 0.2, 1.0)
-                } else {
-                    let s = (t - 0.8) / 0.2;
-                    vec4(0.6 + s * 0.4, 0.6 + s * 0.4, 0.4 + s * 0.6, 1.0)
-                }
-            }
-            ColorMap::Rainbow => {
-                // HSV-style rainbow
-                let h = t * 360.0;
-                let sv = 1.0f32;
-
-                let c = sv;
-                let x = c * (1.0 - ((h / 60.0) % 2.0 - 1.0).abs());
-                let m = sv - c;
-
-                let (r, g, b) = if h < 60.0 {
-                    (c, x, 0.0f32)
-                } else if h < 120.0 {
-                    (x, c, 0.0f32)
-                } else if h < 180.0 {
-                    (0.0f32, c, x)
-                } else if h < 240.0 {
-                    (0.0f32, x, c)
-                } else if h < 300.0 {
-                    (x, 0.0f32, c)
-                } else {
-                    (c, 0.0f32, x)
-                };
-
-                vec4(r + m, g + m, b + m, 1.0)
-            }
+            ColorMap::Viridis => Colormap::Viridis,
+            ColorMap::Plasma => Colormap::Plasma,
+            ColorMap::Inferno => Colormap::Inferno,
+            ColorMap::Magma => Colormap::Magma,
+            ColorMap::CoolWarm => Colormap::CoolWarm,
+            ColorMap::Terrain => Colormap::Viridis, // Fallback
+            ColorMap::Rainbow => Colormap::Turbo,   // Close approximation
         }
     }
-}
 
-/// 3D point
-#[derive(Clone, Copy, Debug)]
-struct Point3D {
-    x: f64,
-    y: f64,
-    z: f64,
-}
-
-impl Point3D {
-    fn new(x: f64, y: f64, z: f64) -> Self {
-        Self { x, y, z }
-    }
-}
-
-/// Surface data
-#[derive(Clone, Debug, Default)]
-pub struct SurfaceData {
-    /// Height values in grid (row-major)
-    pub heights: Vec<Vec<f64>>,
-    pub min_z: f64,
-    pub max_z: f64,
-}
-
-impl SurfaceData {
-    pub fn from_function<F>(resolution: usize, x_range: (f64, f64), y_range: (f64, f64), f: F) -> Self
-    where
-        F: Fn(f64, f64) -> f64,
-    {
-        let mut heights = vec![vec![0.0; resolution]; resolution];
-        let mut min_z = f64::MAX;
-        let mut max_z = f64::MIN;
-
-        for i in 0..resolution {
-            for j in 0..resolution {
-                let x = x_range.0 + (x_range.1 - x_range.0) * (i as f64 / (resolution - 1) as f64);
-                let y = y_range.0 + (y_range.1 - y_range.0) * (j as f64 / (resolution - 1) as f64);
-                let z = f(x, y);
-                heights[i][j] = z;
-                min_z = min_z.min(z);
-                max_z = max_z.max(z);
-            }
-        }
-
-        Self { heights, min_z, max_z }
+    pub fn get_color(&self, t: f64) -> Vec4 {
+        let color = self.to_colormap().sample(t as f32);
+        vec4(color.x, color.y, color.z, 1.0)
     }
 }
 
@@ -204,11 +73,19 @@ pub struct SurfacePlotWidget {
     #[live]
     draw_face: DrawTriangle,
 
+    #[redraw]
+    #[live]
+    draw_surface: DrawSurface3D,
+
+    #[redraw]
+    #[live]
+    draw_wireframe: DrawWireframe3D,
+
     #[walk]
     walk: Walk,
 
     #[rust]
-    surface_data: SurfaceData,
+    surface: Surface3D,
 
     #[rust]
     animator: ChartAnimator,
@@ -222,14 +99,8 @@ pub struct SurfacePlotWidget {
     #[rust]
     chart_rect: Rect,
 
-    #[rust]
+    #[rust(25usize)]
     resolution: usize,
-
-    #[rust(0.5)]
-    rotation_x: f64,
-
-    #[rust(0.3)]
-    rotation_z: f64,
 
     #[rust]
     color_map: ColorMap,
@@ -245,23 +116,103 @@ pub struct SurfacePlotWidget {
 
     #[rust(0.0)]
     time_offset: f64,
+
+    #[rust(false)]
+    is_dragging: bool,
+
+    #[rust]
+    last_mouse_pos: DVec2,
 }
 
 impl Widget for SurfacePlotWidget {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
         match event {
+            Event::MouseDown(me) => {
+                if self.area.rect(cx).contains(me.abs) {
+                    self.is_dragging = true;
+                    self.last_mouse_pos = me.abs;
+                    self.surface.handle_camera_event(CameraEvent::PointerDown {
+                        pos: [me.abs.x, me.abs.y],
+                        shift: me.modifiers.shift,
+                    });
+                    // Stop auto-rotation when dragging
+                    self.animate_rotation = false;
+                }
+            }
+            Event::MouseMove(me) => {
+                if self.is_dragging {
+                    self.surface.handle_camera_event(CameraEvent::PointerMove {
+                        pos: [me.abs.x, me.abs.y],
+                        shift: me.modifiers.shift,
+                    });
+                    self.last_mouse_pos = me.abs;
+                    self.redraw(cx);
+                }
+            }
+            Event::MouseUp(_me) => {
+                if self.is_dragging {
+                    self.is_dragging = false;
+                    self.surface.handle_camera_event(CameraEvent::PointerUp);
+                }
+            }
+            Event::Scroll(se) => {
+                if self.area.rect(cx).contains(se.abs) {
+                    self.surface.handle_camera_event(CameraEvent::Scroll {
+                        delta_y: se.scroll.y,
+                    });
+                    self.redraw(cx);
+                }
+            }
+            Event::KeyDown(ke) => {
+                // Handle keyboard shortcuts
+                match ke.key_code {
+                    KeyCode::KeyR => {
+                        // Reset camera and restart animation
+                        self.surface.camera_mut().reset();
+                        self.animate_rotation = true;
+                        self.redraw(cx);
+                    }
+                    KeyCode::KeyW => {
+                        // Toggle wireframe
+                        self.show_wireframe = !self.show_wireframe;
+                        self.redraw(cx);
+                    }
+                    KeyCode::KeyS => {
+                        // Toggle surface
+                        self.show_surface = !self.show_surface;
+                        self.redraw(cx);
+                    }
+                    KeyCode::Space => {
+                        // Toggle rotation animation
+                        self.animate_rotation = !self.animate_rotation;
+                        self.redraw(cx);
+                    }
+                    _ => {}
+                }
+            }
             Event::NextFrame(ne) => {
-                let time = cx.seconds_since_app_start();
+                let time = ne.time;
 
                 if self.animator.is_running() {
                     if self.animator.update(time) {
+                        let progress = self.animator.get_progress();
+                        self.surface.set_animation_progress(progress);
                         self.redraw(cx);
                     }
                 }
 
                 // Continuous rotation animation
                 if self.animate_rotation && !self.animator.is_running() {
+                    let dt = time - self.time_offset;
                     self.time_offset = time;
+                    // Rotate camera slowly
+                    self.surface.camera_mut().yaw += dt * 0.3;
+                    self.redraw(cx);
+                }
+
+                // Camera animation update
+                if self.surface.camera_controller.needs_update() {
+                    self.surface.handle_camera_event(CameraEvent::Frame { dt: 1.0 / 60.0 });
                     self.redraw(cx);
                 }
 
@@ -282,11 +233,11 @@ impl Widget for SurfacePlotWidget {
 
             if !self.initialized {
                 self.initialize_data();
-                self.start_animation(cx);
+                self.start_animation(cx.cx);
                 self.initialized = true;
             }
 
-            self.draw_surface(cx);
+            self.draw_surface_plot(cx);
         }
 
         DrawStep::done()
@@ -300,35 +251,45 @@ impl SurfacePlotWidget {
             self.resolution = 25;
         }
 
-        // Create interesting mathematical surface
-        self.surface_data = SurfaceData::from_function(
+        // Create interesting mathematical surface using Surface3D
+        self.surface.set_function(
             self.resolution,
             (-2.0, 2.0),
             (-2.0, 2.0),
-            |x, y| {
+            |x, z| {
                 // Combination of sinusoidal functions (like a standing wave)
-                let r = (x * x + y * y).sqrt();
+                let r = (x * x + z * z).sqrt();
                 let wave = (r * 3.0).sin() * (-r * 0.3).exp();
 
                 // Add some Gaussian bumps
-                let bump1 = (-((x - 0.8).powi(2) + (y - 0.8).powi(2)) / 0.3).exp() * 0.5;
-                let bump2 = (-((x + 0.8).powi(2) + (y + 0.8).powi(2)) / 0.4).exp() * 0.4;
+                let bump1 = (-((x - 0.8).powi(2) + (z - 0.8).powi(2)) / 0.3).exp() * 0.5;
+                let bump2 = (-((x + 0.8).powi(2) + (z + 0.8).powi(2)) / 0.4).exp() * 0.4;
 
                 wave + bump1 + bump2
             },
         );
 
+        // Rebuild mesh data
+        self.surface.rebuild_mesh();
+
         // Set default color map
         self.color_map = ColorMap::Viridis;
+        self.surface.set_colormap(self.color_map.to_colormap());
+
+        // Configure surface options
+        self.surface.show_surface = self.show_surface;
+        self.surface.show_wireframe = self.show_wireframe;
     }
 
     pub fn set_data(&mut self, data: SurfaceData) {
-        self.surface_data = data;
-        self.initialized = false;
+        self.surface.set_data(data);
+        self.surface.rebuild_mesh();
+        self.initialized = true;
     }
 
     pub fn set_color_map(&mut self, color_map: ColorMap) {
         self.color_map = color_map;
+        self.surface.set_colormap(color_map.to_colormap());
     }
 
     fn start_animation(&mut self, cx: &mut Cx) {
@@ -337,6 +298,7 @@ impl SurfacePlotWidget {
             .with_easing(EasingType::EaseOutCubic);
         self.animator.start(time);
         self.time_offset = time;
+        self.surface.set_animation_progress(0.0);
         cx.new_next_frame();
     }
 
@@ -346,114 +308,55 @@ impl SurfacePlotWidget {
         self.redraw(cx);
     }
 
-    fn project_point(&self, p: Point3D, rect: Rect) -> (DVec2, f64) {
-        // Get rotation angles (with animation)
-        let rot_z = self.rotation_z + if self.animate_rotation {
-            self.time_offset * 0.3
-        } else {
-            0.0
-        };
-
-        // Rotate around Z axis
-        let cos_z = rot_z.cos();
-        let sin_z = rot_z.sin();
-        let x1 = p.x * cos_z - p.y * sin_z;
-        let y1 = p.x * sin_z + p.y * cos_z;
-        let z1 = p.z;
-
-        // Rotate around X axis (tilt)
-        let cos_x = self.rotation_x.cos();
-        let sin_x = self.rotation_x.sin();
-        let y2 = y1 * cos_x - z1 * sin_x;
-        let z2 = y1 * sin_x + z1 * cos_x;
-
-        // Isometric-like projection with perspective
-        let scale = rect.size.x.min(rect.size.y) * 0.35;
-        let perspective = 3.0 / (3.0 + y2 * 0.3);
-
-        let screen_x = rect.pos.x + rect.size.x / 2.0 + x1 * scale * perspective;
-        let screen_y = rect.pos.y + rect.size.y / 2.0 - z2 * scale * perspective + y2 * scale * 0.2;
-
-        (dvec2(screen_x, screen_y), y2) // Return depth for sorting
-    }
-
-    fn draw_surface(&mut self, cx: &mut Cx2d) {
-        let progress = self.animator.get_progress();
+    fn draw_surface_plot(&mut self, cx: &mut Cx2d) {
         let rect = self.chart_rect;
 
-        let rows = self.surface_data.heights.len();
-        if rows < 2 { return; }
-        let cols = self.surface_data.heights[0].len();
-        if cols < 2 { return; }
+        // Get sorted faces from Surface3D
+        let faces = self.surface.get_sorted_faces(rect.size.x, rect.size.y);
 
-        let z_range = self.surface_data.max_z - self.surface_data.min_z;
-        if z_range.abs() < 1e-10 { return; }
-
-        // Collect all faces with their average depth for sorting
-        struct Face {
-            points: [Point3D; 4],
-            avg_z: f64,
-            color: Vec4,
+        if faces.is_empty() {
+            return;
         }
 
-        let mut faces: Vec<Face> = Vec::new();
-
-        for i in 0..rows - 1 {
-            for j in 0..cols - 1 {
-                let x0 = (i as f64 / (rows - 1) as f64) * 2.0 - 1.0;
-                let x1 = ((i + 1) as f64 / (rows - 1) as f64) * 2.0 - 1.0;
-                let y0 = (j as f64 / (cols - 1) as f64) * 2.0 - 1.0;
-                let y1 = ((j + 1) as f64 / (cols - 1) as f64) * 2.0 - 1.0;
-
-                let z00 = self.surface_data.heights[i][j] * progress;
-                let z01 = self.surface_data.heights[i][j + 1] * progress;
-                let z10 = self.surface_data.heights[i + 1][j] * progress;
-                let z11 = self.surface_data.heights[i + 1][j + 1] * progress;
-
-                let avg_z = (z00 + z01 + z10 + z11) / 4.0;
-
-                // Normalize for color
-                let t = (avg_z / progress.max(0.01) - self.surface_data.min_z) / z_range;
-                let color = self.color_map.get_color(t);
-
-                faces.push(Face {
-                    points: [
-                        Point3D::new(x0, y0, z00),
-                        Point3D::new(x1, y0, z10),
-                        Point3D::new(x1, y1, z11),
-                        Point3D::new(x0, y1, z01),
-                    ],
-                    avg_z,
-                    color,
-                });
-            }
-        }
-
-        // Sort by depth (painter's algorithm - draw far faces first)
-        faces.sort_by(|a, b| {
-            let (_, da) = self.project_point(Point3D::new(0.0, 0.0, a.avg_z), rect);
-            let (_, db) = self.project_point(Point3D::new(0.0, 0.0, b.avg_z), rect);
-            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-        });
-
-        // Draw faces
+        // Draw faces (back to front for proper depth ordering)
         for face in &faces {
-            let p0 = self.project_point(face.points[0], rect).0;
-            let p1 = self.project_point(face.points[1], rect).0;
-            let p2 = self.project_point(face.points[2], rect).0;
-            let p3 = self.project_point(face.points[3], rect).0;
+            // Offset screen positions by chart rect position
+            let p0 = dvec2(rect.pos.x + face.screen_verts[0][0], rect.pos.y + face.screen_verts[0][1]);
+            let p1 = dvec2(rect.pos.x + face.screen_verts[1][0], rect.pos.y + face.screen_verts[1][1]);
+            let p2 = dvec2(rect.pos.x + face.screen_verts[2][0], rect.pos.y + face.screen_verts[2][1]);
+            let p3 = dvec2(rect.pos.x + face.screen_verts[3][0], rect.pos.y + face.screen_verts[3][1]);
 
             if self.show_surface {
+                // Set up surface shader
+                self.draw_surface.set_normal(face.normal[0], face.normal[1], face.normal[2]);
+                self.draw_surface.set_data_value(face.data_value);
+                self.draw_surface.set_colormap(self.surface.colormap);
+
                 // Draw two triangles to form quad
-                let mut surface_color = face.color;
+                // Use draw_face.draw_triangle for now since DrawSurface3D is quad-based
+                let color = self.color_map.get_color(face.data_value as f64);
 
-                // Add slight shading based on normal
-                let normal_factor = 0.7 + 0.3 * (face.avg_z / self.surface_data.max_z).abs();
-                surface_color.x *= normal_factor as f32;
-                surface_color.y *= normal_factor as f32;
-                surface_color.z *= normal_factor as f32;
+                // Apply lighting based on normal (simplified)
+                let light_dir = [0.3f32, 0.8, 0.5];
+                let light_len = (light_dir[0] * light_dir[0] + light_dir[1] * light_dir[1] + light_dir[2] * light_dir[2]).sqrt();
+                let light_norm = [light_dir[0] / light_len, light_dir[1] / light_len, light_dir[2] / light_len];
 
-                self.draw_face.color = surface_color;
+                let n_dot_l = (face.normal[0] * light_norm[0]
+                    + face.normal[1] * light_norm[1]
+                    + face.normal[2] * light_norm[2]).max(0.0);
+
+                let ambient = 0.3;
+                let diffuse = 0.6 * n_dot_l;
+                let brightness = ambient + diffuse;
+
+                let lit_color = vec4(
+                    (color.x * brightness).min(1.0),
+                    (color.y * brightness).min(1.0),
+                    (color.z * brightness).min(1.0),
+                    color.w,
+                );
+
+                self.draw_face.color = lit_color;
                 self.draw_face.disable_gradient();
 
                 self.draw_face.draw_triangle(cx, p0, p1, p2);
@@ -461,11 +364,12 @@ impl SurfacePlotWidget {
             }
 
             if self.show_wireframe {
-                // Draw edges
+                // Draw edges with darker color
+                let base_color = self.color_map.get_color(face.data_value as f64);
                 let line_color = vec4(
-                    face.color.x * 0.6,
-                    face.color.y * 0.6,
-                    face.color.z * 0.6,
+                    base_color.x * 0.5,
+                    base_color.y * 0.5,
+                    base_color.z * 0.5,
                     0.7,
                 );
                 self.draw_line.color = line_color;

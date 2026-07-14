@@ -136,7 +136,12 @@ impl Hcl {
 
     /// Darken the color
     pub fn darken(&self, amount: f32) -> Hcl {
-        Hcl::with_alpha(self.h, self.c, (self.l - self.l * amount).max(0.0), self.alpha)
+        Hcl::with_alpha(
+            self.h,
+            self.c,
+            (self.l - self.l * amount).max(0.0),
+            self.alpha,
+        )
     }
 
     /// Lighten the color
@@ -151,7 +156,12 @@ impl Hcl {
 
     /// Desaturate (reduce chroma)
     pub fn desaturate(&self, amount: f32) -> Hcl {
-        Hcl::with_alpha(self.h, (self.c * (1.0 - amount)).max(0.0), self.l, self.alpha)
+        Hcl::with_alpha(
+            self.h,
+            (self.c * (1.0 - amount)).max(0.0),
+            self.l,
+            self.alpha,
+        )
     }
 
     /// Saturate (increase chroma)
@@ -199,7 +209,11 @@ pub enum HueInterpolation {
 /// Normalize hue to 0-360 range
 fn normalize_hue(h: f32) -> f32 {
     let h = h % 360.0;
-    if h < 0.0 { h + 360.0 } else { h }
+    if h < 0.0 {
+        h + 360.0
+    } else {
+        h
+    }
 }
 
 /// Interpolate between two hue values
@@ -208,9 +222,7 @@ fn interpolate_hue(h1: f32, h2: f32, t: f32, mode: HueInterpolation) -> f32 {
     let h2 = normalize_hue(h2);
 
     match mode {
-        HueInterpolation::Raw => {
-            normalize_hue(h1 + (h2 - h1) * t)
-        }
+        HueInterpolation::Raw => normalize_hue(h1 + (h2 - h1) * t),
         HueInterpolation::Shorter => {
             let diff = h2 - h1;
             let adjusted_diff = if diff > 180.0 {
@@ -287,20 +299,27 @@ mod tests {
 
     #[test]
     fn test_roundtrip() {
-        let colors = [
-            Rgba::RED,
-            Rgba::GREEN,
-            Rgba::BLUE,
-            Rgba::from_hex(0x4285F4),
-        ];
+        let colors = [Rgba::RED, Rgba::GREEN, Rgba::BLUE, Rgba::from_hex(0x4285F4)];
 
         for original in colors {
             let hcl = Hcl::from_rgba(&original);
             let back = hcl.to_rgba();
 
-            assert!((original.r - back.r).abs() < 0.03, "R mismatch for {:?}", original);
-            assert!((original.g - back.g).abs() < 0.03, "G mismatch for {:?}", original);
-            assert!((original.b - back.b).abs() < 0.03, "B mismatch for {:?}", original);
+            assert!(
+                (original.r - back.r).abs() < 0.03,
+                "R mismatch for {:?}",
+                original
+            );
+            assert!(
+                (original.g - back.g).abs() < 0.03,
+                "G mismatch for {:?}",
+                original
+            );
+            assert!(
+                (original.b - back.b).abs() < 0.03,
+                "B mismatch for {:?}",
+                original
+            );
         }
     }
 

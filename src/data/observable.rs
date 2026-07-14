@@ -20,42 +20,26 @@
 //! }
 //! ```
 
-use super::{DataPoint, Dataset, Color, PointStyle};
+use super::{Color, DataPoint, Dataset, PointStyle};
 use std::collections::VecDeque;
 
 /// Types of changes to the dataset
 #[derive(Clone, Debug)]
 pub enum DataChange {
     /// Data point(s) appended
-    Append {
-        start_index: usize,
-        count: usize,
-    },
+    Append { start_index: usize, count: usize },
     /// Data point(s) updated
-    Update {
-        index: usize,
-        count: usize,
-    },
+    Update { index: usize, count: usize },
     /// Data point(s) removed
-    Remove {
-        index: usize,
-        count: usize,
-    },
+    Remove { index: usize, count: usize },
     /// All data replaced
-    Replace {
-        old_count: usize,
-        new_count: usize,
-    },
+    Replace { old_count: usize, new_count: usize },
     /// Data cleared
-    Clear {
-        old_count: usize,
-    },
+    Clear { old_count: usize },
     /// Style changed
     StyleChange,
     /// Visibility changed
-    VisibilityChange {
-        hidden: bool,
-    },
+    VisibilityChange { hidden: bool },
 }
 
 /// Observable dataset that tracks and reports changes
@@ -142,7 +126,10 @@ impl ObservableDataset {
     pub fn push(&mut self, point: DataPoint) {
         let start_index = self.inner.data.len();
         self.inner.data.push(point);
-        self.record_change(DataChange::Append { start_index, count: 1 });
+        self.record_change(DataChange::Append {
+            start_index,
+            count: 1,
+        });
     }
 
     /// Push multiple data points
@@ -191,7 +178,10 @@ impl ObservableDataset {
         let actual_count = count.min(self.inner.data.len().saturating_sub(index));
         if actual_count > 0 {
             self.inner.data.drain(index..index + actual_count);
-            self.record_change(DataChange::Remove { index, count: actual_count });
+            self.record_change(DataChange::Remove {
+                index,
+                count: actual_count,
+            });
         }
     }
 
@@ -200,7 +190,10 @@ impl ObservableDataset {
         let old_count = self.inner.data.len();
         self.inner.data = points.into_iter().collect();
         let new_count = self.inner.data.len();
-        self.record_change(DataChange::Replace { old_count, new_count });
+        self.record_change(DataChange::Replace {
+            old_count,
+            new_count,
+        });
     }
 
     /// Replace with y-values only
@@ -208,7 +201,10 @@ impl ObservableDataset {
         let old_count = self.inner.data.len();
         self.inner.data = values.into_iter().map(DataPoint::from_y).collect();
         let new_count = self.inner.data.len();
-        self.record_change(DataChange::Replace { old_count, new_count });
+        self.record_change(DataChange::Replace {
+            old_count,
+            new_count,
+        });
     }
 
     /// Replace with (x, y) pairs
@@ -216,7 +212,10 @@ impl ObservableDataset {
         let old_count = self.inner.data.len();
         self.inner.data = values.into_iter().map(DataPoint::from).collect();
         let new_count = self.inner.data.len();
-        self.record_change(DataChange::Replace { old_count, new_count });
+        self.record_change(DataChange::Replace {
+            old_count,
+            new_count,
+        });
     }
 
     /// Clear all data
@@ -231,7 +230,10 @@ impl ObservableDataset {
         if self.inner.data.len() > max_points {
             let remove_count = self.inner.data.len() - max_points;
             self.inner.data.drain(0..remove_count);
-            self.record_change(DataChange::Remove { index: 0, count: remove_count });
+            self.record_change(DataChange::Remove {
+                index: 0,
+                count: remove_count,
+            });
         }
     }
 
@@ -266,7 +268,9 @@ impl ObservableDataset {
     /// Toggle visibility
     pub fn toggle_visibility(&mut self) {
         self.inner.hidden = !self.inner.hidden;
-        self.record_change(DataChange::VisibilityChange { hidden: self.inner.hidden });
+        self.record_change(DataChange::VisibilityChange {
+            hidden: self.inner.hidden,
+        });
     }
 
     /// Set line tension
@@ -356,8 +360,8 @@ impl ObservableDataset {
     fn can_coalesce(existing: &DataChange, new: &DataChange) -> bool {
         matches!(
             (existing, new),
-            (DataChange::Append { .. }, DataChange::Append { .. }) |
-            (DataChange::StyleChange, DataChange::StyleChange)
+            (DataChange::Append { .. }, DataChange::Append { .. })
+                | (DataChange::StyleChange, DataChange::StyleChange)
         )
     }
 
@@ -402,7 +406,13 @@ mod tests {
         assert!(ds.has_changes());
 
         let change = ds.poll_change().unwrap();
-        assert!(matches!(change, DataChange::Append { start_index: 0, count: 1 }));
+        assert!(matches!(
+            change,
+            DataChange::Append {
+                start_index: 0,
+                count: 1
+            }
+        ));
     }
 
     #[test]
@@ -417,7 +427,13 @@ mod tests {
         assert_eq!(ds.len(), 3);
 
         let change = ds.poll_change().unwrap();
-        assert!(matches!(change, DataChange::Append { start_index: 0, count: 3 }));
+        assert!(matches!(
+            change,
+            DataChange::Append {
+                start_index: 0,
+                count: 3
+            }
+        ));
     }
 
     #[test]
@@ -463,7 +479,13 @@ mod tests {
 
         assert_eq!(ds.len(), 1);
         let change = ds.poll_change().unwrap();
-        assert!(matches!(change, DataChange::Replace { old_count: 2, new_count: 1 }));
+        assert!(matches!(
+            change,
+            DataChange::Replace {
+                old_count: 2,
+                new_count: 1
+            }
+        ));
     }
 
     #[test]
@@ -514,7 +536,10 @@ mod tests {
         assert!(ds.is_hidden());
 
         let change = ds.poll_change().unwrap();
-        assert!(matches!(change, DataChange::VisibilityChange { hidden: true }));
+        assert!(matches!(
+            change,
+            DataChange::VisibilityChange { hidden: true }
+        ));
     }
 
     #[test]
@@ -531,8 +556,7 @@ mod tests {
 
     #[test]
     fn test_from_dataset() {
-        let dataset = Dataset::new("Original")
-            .with_data(vec![10.0, 20.0, 30.0]);
+        let dataset = Dataset::new("Original").with_data(vec![10.0, 20.0, 30.0]);
 
         let observable = ObservableDataset::from_dataset(dataset);
 

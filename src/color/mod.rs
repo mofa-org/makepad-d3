@@ -64,45 +64,45 @@
 //! let complement = hcl.complement().to_rgba();
 //! ```
 
-mod types;
-mod scale;
-mod lab;
+mod blend;
+mod cubehelix;
 mod hcl;
 mod interpolate;
-mod cubehelix;
-mod blend;
+mod lab;
+mod oklab;
+mod scale;
+mod types;
 
 // Core color types
-pub use types::{Rgba, Hsl};
+pub use types::{Hsl, Rgba};
 
 // Color scales
-pub use scale::{ColorScale, SequentialScale, DivergingScale, CategoricalScale};
+pub use scale::{CategoricalScale, ColorScale, DivergingScale, SequentialScale};
 
 // Perceptually uniform color spaces
-pub use lab::Lab;
 pub use hcl::{Hcl, HueInterpolation};
+pub use lab::Lab;
+pub use oklab::{interpolate_oklab, interpolate_oklch, Oklab, Oklch};
 
 // Interpolation functions
 pub use interpolate::{
-    ColorSpace, InterpolateFn,
-    interpolate, interpolate_rgb, interpolate_hsl, interpolate_lab, interpolate_hcl,
-    interpolate_hcl_long, interpolate_rgb_gamma, interpolate_basis, interpolate_discrete,
-    interpolate_piecewise,
-    interpolator, interpolator_multi, interpolator_rgb_gamma, interpolator_discrete,
+    interpolate, interpolate_basis, interpolate_discrete, interpolate_hcl, interpolate_hcl_long,
+    interpolate_hsl, interpolate_lab, interpolate_piecewise, interpolate_rgb,
+    interpolate_rgb_gamma, interpolator, interpolator_discrete, interpolator_multi,
+    interpolator_rgb_gamma, ColorSpace, InterpolateFn,
 };
 
 // Cubehelix and special color schemes
 pub use cubehelix::{
-    Cubehelix, cubehelix_default, cubehelix_cool, cubehelix_warm, cubehelix_rainbow,
-    sinebow, turbo, interpolator_cubehelix,
+    cubehelix_cool, cubehelix_default, cubehelix_rainbow, cubehelix_warm, interpolator_cubehelix,
+    sinebow, turbo, Cubehelix,
 };
 
 // Color blending and operations
 pub use blend::{
-    BlendMode, blend, blend_with_opacity, composite_over,
-    mix, mix_weighted, mix_lab,
-    tint, shade, tone, brightness, contrast, invert, grayscale, sepia,
-    luminance, contrast_ratio, meets_wcag_aa, meets_wcag_aaa,
+    blend, blend_with_opacity, brightness, composite_over, contrast, contrast_ratio, grayscale,
+    invert, luminance, meets_wcag_aa, meets_wcag_aaa, mix, mix_lab, mix_weighted, sepia, shade,
+    tint, tone, BlendMode,
 };
 
 /// Interpolate between two colors
