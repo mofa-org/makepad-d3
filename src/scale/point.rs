@@ -69,12 +69,21 @@ impl PointScale {
     /// use makepad_d3::scale::PointScale;
     ///
     /// let scale = PointScale::new()
-    ///     .domain(vec!["Low", "Medium", "High"]);
+    ///     .with_domain(vec!["Low", "Medium", "High"]);
     /// ```
-    pub fn domain<S: Into<String>>(mut self, values: impl IntoIterator<Item = S>) -> Self {
+    pub fn with_domain<S: Into<String>>(mut self, values: impl IntoIterator<Item = S>) -> Self {
         self.domain_values = values.into_iter().map(Into::into).collect();
         self.rescale();
         self
+    }
+
+    /// Set the domain (discrete categories)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_domain` instead for consistent builder pattern"
+    )]
+    pub fn domain<S: Into<String>>(self, values: impl IntoIterator<Item = S>) -> Self {
+        self.with_domain(values)
     }
 
     /// Set the domain from a vector of strings
@@ -95,14 +104,23 @@ impl PointScale {
     /// use makepad_d3::scale::PointScale;
     ///
     /// let scale = PointScale::new()
-    ///     .domain(vec!["A", "B", "C"])
-    ///     .range(0.0, 300.0);
+    ///     .with_domain(vec!["A", "B", "C"])
+    ///     .with_range(0.0, 300.0);
     /// ```
-    pub fn range(mut self, start: f64, end: f64) -> Self {
+    pub fn with_range(mut self, start: f64, end: f64) -> Self {
         self.range_start = start;
         self.range_end = end;
         self.rescale();
         self
+    }
+
+    /// Set the output range
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_range` instead for consistent builder pattern"
+    )]
+    pub fn range(self, start: f64, end: f64) -> Self {
+        self.with_range(start, end)
     }
 
     /// Set the outer padding as a fraction of the step size
@@ -115,33 +133,60 @@ impl PointScale {
     /// use makepad_d3::scale::PointScale;
     ///
     /// let scale = PointScale::new()
-    ///     .domain(vec!["A", "B", "C"])
-    ///     .range(0.0, 300.0)
-    ///     .padding(0.5);  // Center points with half-step padding
+    ///     .with_domain(vec!["A", "B", "C"])
+    ///     .with_range(0.0, 300.0)
+    ///     .with_padding(0.5);  // Center points with half-step padding
     /// ```
-    pub fn padding(mut self, padding: f64) -> Self {
+    pub fn with_padding(mut self, padding: f64) -> Self {
         self.padding = padding.clamp(0.0, 1.0);
         self.rescale();
         self
+    }
+
+    /// Set the outer padding as a fraction of the step size
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_padding` instead for consistent builder pattern"
+    )]
+    pub fn padding(self, padding: f64) -> Self {
+        self.with_padding(padding)
     }
 
     /// Set the alignment within outer padding
     ///
     /// Alignment of 0 means points are left-aligned, 1 means right-aligned,
     /// and 0.5 (default) means centered.
-    pub fn align(mut self, align: f64) -> Self {
+    pub fn with_align(mut self, align: f64) -> Self {
         self.align = align.clamp(0.0, 1.0);
         self.rescale();
         self
     }
 
+    /// Set the alignment within outer padding
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_align` instead for consistent builder pattern"
+    )]
+    pub fn align(self, align: f64) -> Self {
+        self.with_align(align)
+    }
+
     /// Enable or disable rounding to pixel boundaries
     ///
     /// When enabled, positions are rounded to integers for crisper rendering.
-    pub fn round(mut self, round: bool) -> Self {
+    pub fn with_round(mut self, round: bool) -> Self {
         self.round = round;
         self.rescale();
         self
+    }
+
+    /// Enable or disable rounding to pixel boundaries
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_round` instead for consistent builder pattern"
+    )]
+    pub fn round(self, round: bool) -> Self {
+        self.with_round(round)
     }
 
     /// Get the number of points
@@ -481,9 +526,7 @@ mod tests {
 
     #[test]
     fn test_point_scale_clone_box() {
-        let scale = PointScale::new()
-            .domain(vec!["A", "B"])
-            .range(0.0, 200.0);
+        let scale = PointScale::new().domain(vec!["A", "B"]).range(0.0, 200.0);
 
         let boxed: Box<dyn Scale> = scale.clone_box();
         assert_eq!(boxed.scale_type(), "point");
@@ -512,9 +555,7 @@ mod tests {
 
     #[test]
     fn test_point_scale_single_item() {
-        let scale = PointScale::new()
-            .domain(vec!["Only"])
-            .range(0.0, 100.0);
+        let scale = PointScale::new().domain(vec!["Only"]).range(0.0, 100.0);
 
         assert_eq!(scale.len(), 1);
         // Single item - step equals range, point at start
@@ -536,9 +577,7 @@ mod tests {
 
     #[test]
     fn test_point_scale_two_items() {
-        let scale = PointScale::new()
-            .domain(vec!["A", "B"])
-            .range(0.0, 100.0);
+        let scale = PointScale::new().domain(vec!["A", "B"]).range(0.0, 100.0);
 
         // Two items: step = 100 / 1 = 100
         // Points at 0 and 100

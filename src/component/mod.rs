@@ -105,42 +105,38 @@
 //!     );
 //! ```
 
-mod legend;
-mod tooltip;
-mod crosshair;
 mod annotation;
+mod crosshair;
+mod legend;
 mod reference_line;
+mod tooltip;
 
 // Legend exports
 pub use legend::{
-    Legend, LegendItem, LegendSymbol, LegendOrientation, LegendPosition,
-    LegendStyle, LegendBuilder,
+    Legend, LegendBuilder, LegendItem, LegendOrientation, LegendPosition, LegendStyle, LegendSymbol,
 };
 
 // Tooltip exports
 pub use tooltip::{
-    TooltipWidget, TooltipConfig, TooltipAnchor, TooltipFollowMode,
-    DataTooltipBuilder,
+    DataTooltipBuilder, TooltipAnchor, TooltipConfig, TooltipFollowMode, TooltipWidget,
 };
 
 // Crosshair exports
 pub use crosshair::{
-    Crosshair, CrosshairMode, CrosshairLineStyle, CrosshairStyle,
-    CrosshairLine, CrosshairLabelConfig, LabelPosition, SnapPoint,
-    CrosshairBuilder,
+    Crosshair, CrosshairBuilder, CrosshairLabelConfig, CrosshairLine, CrosshairLineStyle,
+    CrosshairMode, CrosshairStyle, LabelPosition, SnapPoint,
 };
 
 // Annotation exports
 pub use annotation::{
-    Annotation, AnnotationType, AnnotationStyle, AnnotationLayer,
-    TextAlign, VerticalAlign, ConnectorStyle, ArrowStyle,
+    Annotation, AnnotationLayer, AnnotationStyle, AnnotationType, ArrowStyle, ConnectorStyle,
+    TextAlign, VerticalAlign,
 };
 
 // Reference line exports
 pub use reference_line::{
-    ReferenceLine, ReferenceLineOrientation, ReferenceLineStyle,
-    ReferenceLineSet, ReferenceLineSetBuilder,
-    LineDash, LabelAnchor,
+    LabelAnchor, LineDash, ReferenceLine, ReferenceLineOrientation, ReferenceLineSet,
+    ReferenceLineSetBuilder, ReferenceLineStyle,
 };
 
 #[cfg(test)]
@@ -197,7 +193,7 @@ mod tests {
         layer.add(
             Annotation::callout(150.0, 100.0, 200.0, 50.0, "Note")
                 .with_id("callout1")
-                .with_arrow(true)
+                .with_arrow(true),
         );
 
         assert_eq!(layer.len(), 2);

@@ -18,13 +18,13 @@
 //! ```
 
 mod node;
-mod tree;
-mod treemap;
 mod pack;
 mod partition;
+mod tree;
+mod treemap;
 
 pub use node::HierarchyNode;
-pub use tree::TreeLayout;
-pub use treemap::{TreemapLayout, TilingMethod};
 pub use pack::{PackLayout, PackStrategy};
 pub use partition::{PartitionLayout, PartitionNode};
+pub use tree::TreeLayout;
+pub use treemap::{TilingMethod, TreemapLayout};

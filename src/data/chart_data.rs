@@ -1,6 +1,6 @@
 //! Chart data container
 
-use super::{Dataset, DataPoint};
+use super::{DataPoint, Dataset};
 use crate::error::D3Error;
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +65,11 @@ impl ChartData {
             }
         }
 
-        if found { Some((min, max)) } else { None }
+        if found {
+            Some((min, max))
+        } else {
+            None
+        }
     }
 
     /// Get X extent across all visible datasets
@@ -85,7 +89,11 @@ impl ChartData {
             }
         }
 
-        if found { Some((min, max)) } else { None }
+        if found {
+            Some((min, max))
+        } else {
+            None
+        }
     }
 
     /// Get total Y value (for pie charts)
@@ -137,7 +145,9 @@ impl ChartData {
                 if !dataset.data.is_empty() && dataset.data.len() != expected_len {
                     return Err(D3Error::invalid_data(format!(
                         "Dataset {} has {} points, expected {} (labels count)",
-                        i, dataset.data.len(), expected_len
+                        i,
+                        dataset.data.len(),
+                        expected_len
                     )));
                 }
             }
@@ -169,8 +179,7 @@ mod tests {
 
     #[test]
     fn test_chart_data_with_labels() {
-        let data = ChartData::new()
-            .with_labels(vec!["A", "B", "C"]);
+        let data = ChartData::new().with_labels(vec!["A", "B", "C"]);
 
         assert_eq!(data.labels.len(), 3);
         assert_eq!(data.labels[0], "A");
@@ -178,8 +187,8 @@ mod tests {
 
     #[test]
     fn test_chart_data_add_dataset() {
-        let data = ChartData::new()
-            .add_dataset(Dataset::new("Test").with_data(vec![1.0, 2.0, 3.0]));
+        let data =
+            ChartData::new().add_dataset(Dataset::new("Test").with_data(vec![1.0, 2.0, 3.0]));
 
         assert_eq!(data.datasets.len(), 1);
         assert_eq!(data.len(), 3);
@@ -200,7 +209,11 @@ mod tests {
     fn test_chart_data_y_extent_skips_hidden() {
         let data = ChartData::new()
             .add_dataset(Dataset::new("visible").with_data(vec![0.0, 50.0]))
-            .add_dataset(Dataset::new("hidden").with_data(vec![-100.0, 100.0]).with_hidden(true));
+            .add_dataset(
+                Dataset::new("hidden")
+                    .with_data(vec![-100.0, 100.0])
+                    .with_hidden(true),
+            );
 
         let (min, max) = data.y_extent().unwrap();
         assert_eq!(min, 0.0);
@@ -209,16 +222,15 @@ mod tests {
 
     #[test]
     fn test_chart_data_total() {
-        let data = ChartData::new()
-            .add_dataset(Dataset::new("Pie").with_data(vec![30.0, 20.0, 50.0]));
+        let data =
+            ChartData::new().add_dataset(Dataset::new("Pie").with_data(vec![30.0, 20.0, 50.0]));
 
         assert!((data.total() - 100.0).abs() < 0.001);
     }
 
     #[test]
     fn test_chart_data_toggle_dataset() {
-        let mut data = ChartData::new()
-            .add_dataset(Dataset::new("Test").with_data(vec![1.0]));
+        let mut data = ChartData::new().add_dataset(Dataset::new("Test").with_data(vec![1.0]));
 
         assert!(!data.datasets[0].hidden);
         data.toggle_dataset(0);

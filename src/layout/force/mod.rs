@@ -29,10 +29,10 @@
 //! sim.tick_n(100);
 //! ```
 
-mod simulation;
 mod forces;
+mod simulation;
 
-pub use simulation::{ForceSimulation, SimulationNode, SimulationLink};
 pub use forces::{
-    Force, ManyBodyForce, LinkForce, CollideForce, CenterForce, PositionForce, RadialForce,
+    CenterForce, CollideForce, Force, LinkForce, ManyBodyForce, PositionForce, RadialForce,
 };
+pub use simulation::{ForceSimulation, SimulationLink, SimulationNode};

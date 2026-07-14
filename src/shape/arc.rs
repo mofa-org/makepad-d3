@@ -3,8 +3,8 @@
 //! Creates arc paths for radial visualizations including pie charts,
 //! donut charts, and gauge visualizations.
 
-use std::f64::consts::{PI, TAU};
 use super::path::{PathSegment, Point};
+use std::f64::consts::{PI, TAU};
 
 /// Arc generator for radial visualizations
 ///

@@ -1,6 +1,6 @@
 //! Logarithmic scale implementation
 
-use super::traits::{Scale, ContinuousScale, ScaleExt, Tick, TickOptions};
+use super::traits::{ContinuousScale, Scale, ScaleExt, Tick, TickOptions};
 use super::utils::format_number;
 
 /// Logarithmic scale for exponential data
@@ -192,7 +192,8 @@ impl Scale for LogScale {
                     let value = base_val * mult;
                     if value > self.domain_min && value < self.domain_max {
                         let pos = self.scale(value);
-                        extra_ticks.push(Tick::new(value, self.format_tick(value)).with_position(pos));
+                        extra_ticks
+                            .push(Tick::new(value, self.format_tick(value)).with_position(pos));
                     }
                 }
             }
@@ -284,8 +285,7 @@ mod tests {
 
     #[test]
     fn test_log_scale_nice() {
-        let mut scale = LogScale::new()
-            .with_domain(3.0, 750.0);
+        let mut scale = LogScale::new().with_domain(3.0, 750.0);
 
         scale.nice();
 

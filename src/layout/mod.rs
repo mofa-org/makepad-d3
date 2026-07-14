@@ -50,15 +50,17 @@
 //! }
 //! ```
 
+pub mod delaunay;
 pub mod force;
 pub mod hierarchy;
 
 pub use force::{
-    ForceSimulation, SimulationNode, SimulationLink,
-    Force, ManyBodyForce, LinkForce, CollideForce, CenterForce, PositionForce, RadialForce,
+    CenterForce, CollideForce, Force, ForceSimulation, LinkForce, ManyBodyForce, PositionForce,
+    RadialForce, SimulationLink, SimulationNode,
 };
 
 pub use hierarchy::{
-    HierarchyNode, TreeLayout, TreemapLayout, PackLayout,
-    TilingMethod, PackStrategy,
+    HierarchyNode, PackLayout, PackStrategy, TilingMethod, TreeLayout, TreemapLayout,
 };
+
+pub use delaunay::{Delaunay, Point, Voronoi};

@@ -37,18 +37,21 @@
 //! let (lon, lat) = projection.invert(x, y);
 //! ```
 
-mod projection;
+mod area;
 mod geojson;
 mod path;
+mod projection;
 
 pub use projection::{
-    Projection, ProjectionBuilder,
-    MercatorProjection, EquirectangularProjection, OrthographicProjection, AlbersProjection,
+    compute_fit_extent, compute_fit_size, project_bounds, AlbersProjection,
+    EquirectangularProjection, MercatorProjection, OrthographicProjection, Projection,
+    ProjectionBuilder,
 };
 
 pub use geojson::{
-    GeoJson, Feature, FeatureCollection, Geometry, GeometryType,
-    Position, BoundingBox, Properties,
+    BoundingBox, Feature, FeatureCollection, GeoJson, Geometry, GeometryType, Position, Properties,
 };
 
 pub use path::{GeoPath, GeoPathSegment};
+
+pub use area::{geo_area, geo_bounds, geo_centroid, geo_length};

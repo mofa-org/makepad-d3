@@ -54,12 +54,42 @@ impl Color {
     }
 
     /// Standard colors
-    pub const RED: Color = Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 };
-    pub const GREEN: Color = Color { r: 0.0, g: 1.0, b: 0.0, a: 1.0 };
-    pub const BLUE: Color = Color { r: 0.0, g: 0.0, b: 1.0, a: 1.0 };
-    pub const BLACK: Color = Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 };
-    pub const WHITE: Color = Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
-    pub const TRANSPARENT: Color = Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
+    pub const RED: Color = Color {
+        r: 1.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+    };
+    pub const GREEN: Color = Color {
+        r: 0.0,
+        g: 1.0,
+        b: 0.0,
+        a: 1.0,
+    };
+    pub const BLUE: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 1.0,
+        a: 1.0,
+    };
+    pub const BLACK: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+    };
+    pub const WHITE: Color = Color {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0,
+    };
+    pub const TRANSPARENT: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
 }
 
 /// A dataset containing multiple data points with styling
@@ -285,8 +315,7 @@ mod tests {
 
     #[test]
     fn test_dataset_with_data() {
-        let ds = Dataset::new("Test")
-            .with_data(vec![10.0, 20.0, 30.0]);
+        let ds = Dataset::new("Test").with_data(vec![10.0, 20.0, 30.0]);
 
         assert_eq!(ds.len(), 3);
         assert_eq!(ds.data[0].y, 10.0);
@@ -296,8 +325,7 @@ mod tests {
 
     #[test]
     fn test_dataset_y_extent() {
-        let ds = Dataset::new("Test")
-            .with_data(vec![10.0, 50.0, 30.0, -5.0]);
+        let ds = Dataset::new("Test").with_data(vec![10.0, 50.0, 30.0, -5.0]);
 
         let (min, max) = ds.y_extent().unwrap();
         assert_eq!(min, -5.0);
@@ -306,11 +334,10 @@ mod tests {
 
     #[test]
     fn test_dataset_y_extent_with_range() {
-        let ds = Dataset::new("Test")
-            .with_points(vec![
-                DataPoint::range(-10.0, 10.0),
-                DataPoint::range(5.0, 20.0),
-            ]);
+        let ds = Dataset::new("Test").with_points(vec![
+            DataPoint::range(-10.0, 10.0),
+            DataPoint::range(5.0, 20.0),
+        ]);
 
         let (min, max) = ds.y_extent().unwrap();
         assert_eq!(min, -10.0);
@@ -319,8 +346,7 @@ mod tests {
 
     #[test]
     fn test_dataset_x_extent() {
-        let ds = Dataset::new("Test")
-            .with_xy_data(vec![(1.0, 10.0), (5.0, 20.0), (3.0, 30.0)]);
+        let ds = Dataset::new("Test").with_xy_data(vec![(1.0, 10.0), (5.0, 20.0), (3.0, 30.0)]);
 
         let (min, max) = ds.x_extent().unwrap();
         assert_eq!(min, 1.0);

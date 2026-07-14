@@ -3,8 +3,8 @@
 //! Provides data structures for building tooltips that display
 //! information about data points.
 
-use serde::{Deserialize, Serialize};
 use crate::color::Rgba;
+use serde::{Deserialize, Serialize};
 
 /// A single item in a tooltip
 ///
@@ -129,7 +129,8 @@ impl TooltipContent {
         value: impl Into<String>,
         color: Rgba,
     ) -> Self {
-        self.items.push(TooltipItem::new(label, value).with_color(color));
+        self.items
+            .push(TooltipItem::new(label, value).with_color(color));
         self
     }
 
@@ -218,7 +219,14 @@ impl TooltipState {
     }
 
     /// Show at position with offset
-    pub fn show_with_offset(&mut self, x: f64, y: f64, offset_x: f64, offset_y: f64, content: TooltipContent) {
+    pub fn show_with_offset(
+        &mut self,
+        x: f64,
+        y: f64,
+        offset_x: f64,
+        offset_y: f64,
+        content: TooltipContent,
+    ) {
         self.show(x + offset_x, y + offset_y, content);
     }
 
@@ -258,8 +266,7 @@ mod tests {
 
     #[test]
     fn test_tooltip_item_with_color() {
-        let item = TooltipItem::new("Revenue", "$1,234")
-            .with_color(Rgba::from_hex(0xFF0000));
+        let item = TooltipItem::new("Revenue", "$1,234").with_color(Rgba::from_hex(0xFF0000));
         assert!(item.color.is_some());
         assert!((item.color.unwrap().r - 1.0).abs() < 0.01);
     }

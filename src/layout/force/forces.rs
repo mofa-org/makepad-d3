@@ -2,7 +2,7 @@
 //!
 //! Various forces that can be applied to nodes in a simulation.
 
-use super::simulation::{SimulationNode, SimulationLink};
+use super::simulation::{SimulationLink, SimulationNode};
 
 /// Trait for forces that can be applied to nodes
 pub trait Force: Send + Sync {
@@ -799,7 +799,10 @@ mod tests {
     #[test]
     fn test_force_types() {
         assert_eq!(ManyBodyForce::new().force_type(), "many-body");
-        assert_eq!(LinkForce::new(Vec::<(usize, usize)>::new()).force_type(), "link");
+        assert_eq!(
+            LinkForce::new(Vec::<(usize, usize)>::new()).force_type(),
+            "link"
+        );
         assert_eq!(CollideForce::new().force_type(), "collide");
         assert_eq!(CenterForce::new().force_type(), "center");
         assert_eq!(PositionForce::new().force_type(), "position");

@@ -3,9 +3,9 @@
 //! Converts data points to drawable path segments using configurable
 //! curve interpolation.
 
-use crate::data::DataPoint;
 use super::curve::{Curve, LinearCurve};
 use super::path::{PathSegment, Point};
+use crate::data::DataPoint;
 
 /// Line generator that converts data points to path segments
 ///

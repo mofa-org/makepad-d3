@@ -162,7 +162,13 @@ impl TreeLayout {
     }
 
     /// Normalize coordinates to layout bounds
-    fn normalize_coords<T>(&self, node: &mut HierarchyNode<T>, min_x: f64, x_range: f64, height: f64) {
+    fn normalize_coords<T>(
+        &self,
+        node: &mut HierarchyNode<T>,
+        min_x: f64,
+        x_range: f64,
+        height: f64,
+    ) {
         if let Some((node_w, node_h)) = self.node_size {
             // Fixed node size mode
             node.x = (node.x - min_x) * node_w;

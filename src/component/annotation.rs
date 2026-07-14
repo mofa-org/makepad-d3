@@ -546,8 +546,8 @@ impl Annotation {
             }
             AnnotationType::Text | AnnotationType::Badge => {
                 // Estimate text bounds
-                let w = self.text.len() as f64 * self.style.font_size * 0.6
-                    + self.style.padding * 2.0;
+                let w =
+                    self.text.len() as f64 * self.style.font_size * 0.6 + self.style.padding * 2.0;
                 let h = self.style.font_size + self.style.padding * 2.0;
                 (self.x - w / 2.0, self.y - h / 2.0, w, h)
             }
@@ -555,8 +555,8 @@ impl Annotation {
                 // Return bounds of the label portion
                 let label_x = self.x2.unwrap_or(self.x);
                 let label_y = self.y2.unwrap_or(self.y);
-                let w = self.text.len() as f64 * self.style.font_size * 0.6
-                    + self.style.padding * 2.0;
+                let w =
+                    self.text.len() as f64 * self.style.font_size * 0.6 + self.style.padding * 2.0;
                 let h = self.style.font_size + self.style.padding * 2.0;
                 (label_x - w / 2.0, label_y - h / 2.0, w, h)
             }
@@ -587,10 +587,7 @@ impl Annotation {
         }
 
         let target = (self.x, self.y);
-        let label = (
-            self.x2.unwrap_or(self.x),
-            self.y2.unwrap_or(self.y),
-        );
+        let label = (self.x2.unwrap_or(self.x), self.y2.unwrap_or(self.y));
 
         match self.connector_style {
             ConnectorStyle::Straight => vec![target, label],

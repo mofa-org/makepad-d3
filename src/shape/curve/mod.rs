@@ -13,21 +13,21 @@
 //! - [`MonotoneCurve`]: Monotone cubic interpolation (preserves monotonicity)
 //! - [`NaturalCurve`]: Natural cubic spline (C2 continuous)
 
-mod linear;
-mod step;
 mod basis;
 mod cardinal;
 mod catmull_rom;
+mod linear;
 mod monotone;
 mod natural;
+mod step;
 
-pub use linear::LinearCurve;
-pub use step::{StepCurve, StepPosition};
 pub use basis::BasisCurve;
 pub use cardinal::CardinalCurve;
 pub use catmull_rom::CatmullRomCurve;
+pub use linear::LinearCurve;
 pub use monotone::MonotoneCurve;
 pub use natural::NaturalCurve;
+pub use step::{StepCurve, StepPosition};
 
 use super::path::{PathSegment, Point};
 

@@ -3,9 +3,9 @@
 //! Creates closed path segments representing the area between a baseline
 //! and a top line.
 
-use crate::data::DataPoint;
 use super::curve::{Curve, LinearCurve};
 use super::path::{PathSegment, Point};
+use crate::data::DataPoint;
 
 /// Area generator for filled regions
 ///

@@ -167,7 +167,9 @@ pub trait Scale: Send + Sync {
     }
 
     /// Copy configuration from another scale of the same type
-    fn copy_from(&mut self, other: &Self) where Self: Sized;
+    fn copy_from(&mut self, other: &Self)
+    where
+        Self: Sized;
 
     /// Clone into a boxed trait object
     fn clone_box(&self) -> Box<dyn Scale>;

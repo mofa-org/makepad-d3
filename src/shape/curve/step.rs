@@ -117,10 +117,7 @@ mod tests {
     #[test]
     fn test_step_after() {
         let curve = StepCurve::after();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 3); // MoveTo, LineTo (horizontal), LineTo (vertical)
@@ -129,7 +126,7 @@ mod tests {
         match &path[1] {
             PathSegment::LineTo(p) => {
                 assert_eq!(p.x, 100.0); // Same x as end
-                assert_eq!(p.y, 0.0);   // Same y as start
+                assert_eq!(p.y, 0.0); // Same y as start
             }
             _ => panic!("Expected LineTo"),
         }
@@ -138,10 +135,7 @@ mod tests {
     #[test]
     fn test_step_before() {
         let curve = StepCurve::before();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 3);
@@ -149,7 +143,7 @@ mod tests {
         // Check intermediate point
         match &path[1] {
             PathSegment::LineTo(p) => {
-                assert_eq!(p.x, 0.0);   // Same x as start
+                assert_eq!(p.x, 0.0); // Same x as start
                 assert_eq!(p.y, 100.0); // Same y as end
             }
             _ => panic!("Expected LineTo"),
@@ -159,10 +153,7 @@ mod tests {
     #[test]
     fn test_step_middle() {
         let curve = StepCurve::middle();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 4); // MoveTo + 3 LineTo for middle step
@@ -171,7 +162,7 @@ mod tests {
         match &path[1] {
             PathSegment::LineTo(p) => {
                 assert_eq!(p.x, 50.0); // Midpoint x
-                assert_eq!(p.y, 0.0);  // Start y
+                assert_eq!(p.y, 0.0); // Start y
             }
             _ => panic!("Expected LineTo"),
         }

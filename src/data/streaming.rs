@@ -22,7 +22,7 @@
 
 use super::{DataPoint, DataSource, DataSourceConfig, DataSourceEvent, DataSourceState};
 use std::collections::VecDeque;
-use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
 
 /// Message types for streaming data
@@ -259,7 +259,12 @@ impl SharedStreamingSource {
     /// Create a new shared streaming source
     pub fn new() -> (Self, Sender<StreamMessage>) {
         let (source, tx) = StreamingDataSource::new();
-        (Self { inner: Arc::new(Mutex::new(source)) }, tx)
+        (
+            Self {
+                inner: Arc::new(Mutex::new(source)),
+            },
+            tx,
+        )
     }
 
     /// Poll for events
@@ -279,7 +284,9 @@ impl SharedStreamingSource {
 
     /// Clone the arc handle
     pub fn clone_handle(&self) -> Self {
-        Self { inner: Arc::clone(&self.inner) }
+        Self {
+            inner: Arc::clone(&self.inner),
+        }
     }
 }
 
@@ -352,7 +359,8 @@ mod tests {
     fn test_streaming_source_receive_point() {
         let (mut source, tx) = StreamingDataSource::new();
 
-        tx.send(StreamMessage::Point(DataPoint::from_y(100.0))).unwrap();
+        tx.send(StreamMessage::Point(DataPoint::from_y(100.0)))
+            .unwrap();
         source.process_messages();
 
         assert_eq!(source.len(), 1);
@@ -367,7 +375,8 @@ mod tests {
             DataPoint::from_y(10.0),
             DataPoint::from_y(20.0),
             DataPoint::from_y(30.0),
-        ])).unwrap();
+        ]))
+        .unwrap();
         source.process_messages();
 
         assert_eq!(source.len(), 3);
@@ -377,7 +386,8 @@ mod tests {
     fn test_streaming_source_poll_events() {
         let (mut source, tx) = StreamingDataSource::new();
 
-        tx.send(StreamMessage::Point(DataPoint::from_y(100.0))).unwrap();
+        tx.send(StreamMessage::Point(DataPoint::from_y(100.0)))
+            .unwrap();
 
         let event = source.poll();
         assert!(matches!(event, DataSourceEvent::Append(_)));
@@ -389,7 +399,8 @@ mod tests {
         let (mut source, tx) = StreamingDataSource::with_config(config);
 
         for i in 0..5 {
-            tx.send(StreamMessage::Point(DataPoint::from_y(i as f64))).unwrap();
+            tx.send(StreamMessage::Point(DataPoint::from_y(i as f64)))
+                .unwrap();
         }
         source.process_messages();
 
@@ -406,10 +417,12 @@ mod tests {
         tx.send(StreamMessage::Points(vec![
             DataPoint::from_y(10.0),
             DataPoint::from_y(20.0),
-        ])).unwrap();
+        ]))
+        .unwrap();
         source.process_messages();
 
-        tx.send(StreamMessage::Replace(vec![DataPoint::from_y(100.0)])).unwrap();
+        tx.send(StreamMessage::Replace(vec![DataPoint::from_y(100.0)]))
+            .unwrap();
         source.process_messages();
 
         assert_eq!(source.len(), 1);
@@ -423,7 +436,8 @@ mod tests {
         tx.send(StreamMessage::Points(vec![
             DataPoint::from_y(10.0),
             DataPoint::from_y(20.0),
-        ])).unwrap();
+        ]))
+        .unwrap();
         source.process_messages();
 
         tx.send(StreamMessage::Clear).unwrap();
@@ -446,7 +460,8 @@ mod tests {
     fn test_shared_streaming_source() {
         let (source, tx) = SharedStreamingSource::new();
 
-        tx.send(StreamMessage::Point(DataPoint::from_y(100.0))).unwrap();
+        tx.send(StreamMessage::Point(DataPoint::from_y(100.0)))
+            .unwrap();
 
         let event = source.poll();
         assert!(matches!(event, DataSourceEvent::Append(_)));

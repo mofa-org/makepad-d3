@@ -63,11 +63,20 @@ impl<T: Clone> QuantileScale<T> {
     /// use makepad_d3::scale::QuantileScale;
     ///
     /// let scale: QuantileScale<&str> = QuantileScale::new()
-    ///     .domain(vec![10.0, 20.0, 30.0, 40.0, 50.0]);
+    ///     .with_domain(vec![10.0, 20.0, 30.0, 40.0, 50.0]);
     /// ```
-    pub fn domain(mut self, data: Vec<f64>) -> Self {
+    pub fn with_domain(mut self, data: Vec<f64>) -> Self {
         self.set_domain_data(data);
         self
+    }
+
+    /// Set the domain from sample data (deprecated)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_domain` instead for consistent builder pattern"
+    )]
+    pub fn domain(self, data: Vec<f64>) -> Self {
+        self.with_domain(data)
     }
 
     /// Set the domain data
@@ -105,13 +114,22 @@ impl<T: Clone> QuantileScale<T> {
     /// use makepad_d3::scale::QuantileScale;
     ///
     /// let scale = QuantileScale::new()
-    ///     .domain(vec![1.0, 2.0, 3.0, 4.0])
-    ///     .range(vec!["Q1", "Q2", "Q3", "Q4"]);
+    ///     .with_domain(vec![1.0, 2.0, 3.0, 4.0])
+    ///     .with_range(vec!["Q1", "Q2", "Q3", "Q4"]);
     /// ```
-    pub fn range(mut self, values: Vec<T>) -> Self {
+    pub fn with_range(mut self, values: Vec<T>) -> Self {
         self.range_values = values;
         self.rescale();
         self
+    }
+
+    /// Set the discrete output range values (deprecated)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_range` instead for consistent builder pattern"
+    )]
+    pub fn range(self, values: Vec<T>) -> Self {
+        self.with_range(values)
     }
 
     /// Set the range values
@@ -352,8 +370,9 @@ impl Scale for QuantileScale<f64> {
 
         for &threshold in &self.thresholds {
             if ticks.len() < options.max_count {
-                ticks
-                    .push(Tick::new(threshold, format!("{:.2}", threshold)).with_position(threshold));
+                ticks.push(
+                    Tick::new(threshold, format!("{:.2}", threshold)).with_position(threshold),
+                );
             }
         }
 
@@ -538,7 +557,9 @@ mod tests {
     #[test]
     fn test_quantile_scale_uniform_data() {
         let scale = QuantileScale::new()
-            .domain(vec![0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0])
+            .domain(vec![
+                0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0,
+            ])
             .range(vec!["A", "B", "C", "D", "E"]);
 
         // 10 uniformly distributed values into 5 quantiles

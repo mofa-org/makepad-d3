@@ -50,6 +50,8 @@ pub fn interpolate_rgb(a: &Rgba, b: &Rgba, t: f64) -> Rgba {
 }
 
 /// Interpolate between two colors in HSL space
+///
+/// Preserves alpha channel by interpolating it separately.
 pub fn interpolate_hsl(a: &Rgba, b: &Rgba, t: f64) -> Rgba {
     let hsl_a = Hsl::from_rgba(a);
     let hsl_b = Hsl::from_rgba(b);
@@ -70,7 +72,10 @@ pub fn interpolate_hsl(a: &Rgba, b: &Rgba, t: f64) -> Rgba {
     let s = hsl_a.s + (hsl_b.s - hsl_a.s) * t;
     let l = hsl_a.l + (hsl_b.l - hsl_a.l) * t;
 
-    Hsl::new(h, s, l).to_rgba()
+    // Interpolate alpha separately (HSL doesn't have alpha)
+    let alpha = a.a + (b.a - a.a) * t;
+
+    Hsl::new(h, s, l).to_rgba().with_alpha(alpha)
 }
 
 /// Interpolate between two colors in Lab space (perceptually uniform)
@@ -235,11 +240,7 @@ pub fn interpolator_discrete(colors: Vec<Rgba>) -> InterpolateFn {
 /// Piecewise interpolation with custom positions
 ///
 /// Colors are positioned at specific t values, allowing non-uniform gradients.
-pub fn interpolate_piecewise(
-    colors: &[(f64, Rgba)],
-    t: f64,
-    space: ColorSpace,
-) -> Rgba {
+pub fn interpolate_piecewise(colors: &[(f64, Rgba)], t: f64, space: ColorSpace) -> Rgba {
     if colors.is_empty() {
         return Rgba::BLACK;
     }
@@ -383,11 +384,7 @@ mod tests {
 
     #[test]
     fn test_piecewise() {
-        let colors = vec![
-            (0.0, Rgba::RED),
-            (0.3, Rgba::GREEN),
-            (1.0, Rgba::BLUE),
-        ];
+        let colors = vec![(0.0, Rgba::RED), (0.3, Rgba::GREEN), (1.0, Rgba::BLUE)];
 
         let at_0 = interpolate_piecewise(&colors, 0.0, ColorSpace::Rgb);
         let at_03 = interpolate_piecewise(&colors, 0.3, ColorSpace::Rgb);
@@ -404,5 +401,46 @@ mod tests {
 
         let mid = interp(0.5);
         assert!((mid.r - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_hsl_preserves_alpha() {
+        let color_a = Rgba::new(1.0, 0.0, 0.0, 0.2); // Red with 20% alpha
+        let color_b = Rgba::new(0.0, 1.0, 0.0, 0.8); // Green with 80% alpha
+
+        // Test at various t values
+        let start = interpolate_hsl(&color_a, &color_b, 0.0);
+        assert!(
+            (start.a - 0.2).abs() < 0.01,
+            "Start alpha should be 0.2, got {}",
+            start.a
+        );
+
+        let mid = interpolate_hsl(&color_a, &color_b, 0.5);
+        assert!(
+            (mid.a - 0.5).abs() < 0.01,
+            "Mid alpha should be 0.5, got {}",
+            mid.a
+        );
+
+        let end = interpolate_hsl(&color_a, &color_b, 1.0);
+        assert!(
+            (end.a - 0.8).abs() < 0.01,
+            "End alpha should be 0.8, got {}",
+            end.a
+        );
+    }
+
+    #[test]
+    fn test_rgb_preserves_alpha() {
+        let color_a = Rgba::new(0.0, 0.0, 0.0, 0.0); // Transparent black
+        let color_b = Rgba::new(1.0, 1.0, 1.0, 1.0); // Opaque white
+
+        let mid = interpolate_rgb(&color_a, &color_b, 0.5);
+        assert!(
+            (mid.a - 0.5).abs() < 0.01,
+            "Alpha should be 0.5, got {}",
+            mid.a
+        );
     }
 }

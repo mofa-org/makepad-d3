@@ -1,7 +1,7 @@
 //! Symmetric logarithmic scale implementation
 
-use super::traits::{Scale, ContinuousScale, ScaleExt, Tick, TickOptions};
-use super::utils::{nice_step, format_number};
+use super::traits::{ContinuousScale, Scale, ScaleExt, Tick, TickOptions};
+use super::utils::{format_number, nice_step};
 
 /// Symmetric logarithmic scale for data that crosses zero
 ///
@@ -151,9 +151,9 @@ impl Scale for SymlogScale {
         // For symlog, we generate ticks in both positive and negative regions
         let span = self.domain_max - self.domain_min;
 
-        let step = options.step_size.unwrap_or_else(|| {
-            nice_step(span.abs(), options.count)
-        });
+        let step = options
+            .step_size
+            .unwrap_or_else(|| nice_step(span.abs(), options.count));
 
         if step <= 0.0 {
             return vec![];
@@ -167,7 +167,8 @@ impl Scale for SymlogScale {
 
         let mut value = start;
         while value <= self.domain_max + epsilon && ticks.len() < options.max_count {
-            let skip = ticks.last()
+            let skip = ticks
+                .last()
                 .map(|t: &Tick| (t.value - value).abs() < epsilon)
                 .unwrap_or(false);
 
@@ -300,8 +301,12 @@ mod tests {
         for &value in &[-100.0, -50.0, -10.0, 0.0, 10.0, 50.0, 100.0] {
             let pixel = scale.scale(value);
             let roundtrip = scale.invert(pixel);
-            assert!((roundtrip - value).abs() < 0.1,
-                "Roundtrip failed for {}: got {}", value, roundtrip);
+            assert!(
+                (roundtrip - value).abs() < 0.1,
+                "Roundtrip failed for {}: got {}",
+                value,
+                roundtrip
+            );
         }
     }
 
@@ -341,8 +346,7 @@ mod tests {
 
     #[test]
     fn test_symlog_scale_nice() {
-        let mut scale = SymlogScale::new()
-            .with_domain(-73.5, 82.1);
+        let mut scale = SymlogScale::new().with_domain(-73.5, 82.1);
 
         scale.nice();
 
@@ -352,8 +356,7 @@ mod tests {
 
     #[test]
     fn test_symlog_scale_positive_only() {
-        let mut scale = SymlogScale::new()
-            .with_domain(5.0, 87.0);
+        let mut scale = SymlogScale::new().with_domain(5.0, 87.0);
 
         scale.nice();
 

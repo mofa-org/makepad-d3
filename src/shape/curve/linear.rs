@@ -58,10 +58,7 @@ mod tests {
     #[test]
     fn test_linear_basic() {
         let curve = LinearCurve::new();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 2);

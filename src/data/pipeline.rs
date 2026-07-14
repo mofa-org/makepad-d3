@@ -143,7 +143,8 @@ impl DataPipeline {
 
     /// Smooth with moving average
     pub fn moving_average(mut self, window: usize) -> Self {
-        self.transforms.push(Transform::MovingAverage(window.max(1)));
+        self.transforms
+            .push(Transform::MovingAverage(window.max(1)));
         self
     }
 
@@ -215,12 +216,8 @@ impl DataPipeline {
     /// Apply single transform
     fn apply_transform(data: &[DataPoint], transform: &Transform) -> Vec<DataPoint> {
         match transform {
-            Transform::Filter(predicate) => {
-                data.iter().filter(|p| predicate(p)).cloned().collect()
-            }
-            Transform::Map(mapper) => {
-                data.iter().map(|p| mapper(p)).collect()
-            }
+            Transform::Filter(predicate) => data.iter().filter(|p| predicate(p)).cloned().collect(),
+            Transform::Map(mapper) => data.iter().map(|p| mapper(p)).collect(),
             Transform::Window(size) => {
                 if data.len() <= *size {
                     data.to_vec()
@@ -228,54 +225,36 @@ impl DataPipeline {
                     data[data.len() - size..].to_vec()
                 }
             }
-            Transform::Skip(count) => {
-                data.iter().skip(*count).cloned().collect()
-            }
-            Transform::Take(count) => {
-                data.iter().take(*count).cloned().collect()
-            }
-            Transform::Sample(n) => {
-                data.iter().step_by(*n).cloned().collect()
-            }
-            Transform::MovingAverage(window) => {
-                Self::apply_moving_average(data, *window)
-            }
-            Transform::ClampY { min, max } => {
-                data.iter()
-                    .map(|p| {
-                        let mut point = p.clone();
-                        point.y = point.y.clamp(*min, *max);
-                        point
-                    })
-                    .collect()
-            }
-            Transform::ScaleY(factor) => {
-                data.iter()
-                    .map(|p| {
-                        let mut point = p.clone();
-                        point.y *= factor;
-                        point
-                    })
-                    .collect()
-            }
-            Transform::OffsetY(offset) => {
-                data.iter()
-                    .map(|p| {
-                        let mut point = p.clone();
-                        point.y += offset;
-                        point
-                    })
-                    .collect()
-            }
-            Transform::NormalizeY => {
-                Self::apply_normalize_y(data)
-            }
-            Transform::RemoveInvalid => {
-                data.iter()
-                    .filter(|p| p.y.is_finite())
-                    .cloned()
-                    .collect()
-            }
+            Transform::Skip(count) => data.iter().skip(*count).cloned().collect(),
+            Transform::Take(count) => data.iter().take(*count).cloned().collect(),
+            Transform::Sample(n) => data.iter().step_by(*n).cloned().collect(),
+            Transform::MovingAverage(window) => Self::apply_moving_average(data, *window),
+            Transform::ClampY { min, max } => data
+                .iter()
+                .map(|p| {
+                    let mut point = p.clone();
+                    point.y = point.y.clamp(*min, *max);
+                    point
+                })
+                .collect(),
+            Transform::ScaleY(factor) => data
+                .iter()
+                .map(|p| {
+                    let mut point = p.clone();
+                    point.y *= factor;
+                    point
+                })
+                .collect(),
+            Transform::OffsetY(offset) => data
+                .iter()
+                .map(|p| {
+                    let mut point = p.clone();
+                    point.y += offset;
+                    point
+                })
+                .collect(),
+            Transform::NormalizeY => Self::apply_normalize_y(data),
+            Transform::RemoveInvalid => data.iter().filter(|p| p.y.is_finite()).cloned().collect(),
             Transform::SortByX => {
                 let mut sorted = data.to_vec();
                 sorted.sort_by(|a, b| {
@@ -287,17 +266,11 @@ impl DataPipeline {
             }
             Transform::SortByY => {
                 let mut sorted = data.to_vec();
-                sorted.sort_by(|a, b| {
-                    a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal)
-                });
+                sorted.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap_or(std::cmp::Ordering::Equal));
                 sorted
             }
-            Transform::Reverse => {
-                data.iter().rev().cloned().collect()
-            }
-            Transform::Dedupe => {
-                Self::apply_dedupe(data)
-            }
+            Transform::Reverse => data.iter().rev().cloned().collect(),
+            Transform::Dedupe => Self::apply_dedupe(data),
         }
     }
 
@@ -329,7 +302,8 @@ impl DataPipeline {
         let range = max - min;
 
         if range == 0.0 {
-            return data.iter()
+            return data
+                .iter()
                 .map(|p| {
                     let mut point = p.clone();
                     point.y = 0.5;
@@ -426,12 +400,14 @@ impl Aggregation {
                 let sum: f64 = data.iter().map(|p| p.y).sum();
                 Some(sum / data.len() as f64)
             }
-            Aggregation::Min => data.iter().map(|p| p.y).fold(None, |acc, y| {
-                Some(acc.map_or(y, |a: f64| a.min(y)))
-            }),
-            Aggregation::Max => data.iter().map(|p| p.y).fold(None, |acc, y| {
-                Some(acc.map_or(y, |a: f64| a.max(y)))
-            }),
+            Aggregation::Min => data
+                .iter()
+                .map(|p| p.y)
+                .fold(None, |acc, y| Some(acc.map_or(y, |a: f64| a.min(y)))),
+            Aggregation::Max => data
+                .iter()
+                .map(|p| p.y)
+                .fold(None, |acc, y| Some(acc.map_or(y, |a: f64| a.max(y)))),
             Aggregation::Count => Some(data.len() as f64),
             Aggregation::First => data.first().map(|p| p.y),
             Aggregation::Last => data.last().map(|p| p.y),

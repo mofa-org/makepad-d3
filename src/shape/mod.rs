@@ -36,15 +36,15 @@
 pub mod curve;
 pub mod path;
 
-mod line;
-mod area;
 mod arc;
+mod area;
+mod line;
 mod pie;
 mod stack;
 
-pub use path::{Path, PathSegment, Point};
-pub use line::LineGenerator;
+pub use arc::{ArcDatum, ArcGenerator};
 pub use area::AreaGenerator;
-pub use arc::{ArcGenerator, ArcDatum};
+pub use line::LineGenerator;
+pub use path::{Path, PathSegment, Point};
 pub use pie::{PieLayout, PieSlice, PieSort};
-pub use stack::{StackGenerator, StackedSeries, StackPoint, StackOrder, StackOffset};
+pub use stack::{StackGenerator, StackOffset, StackOrder, StackPoint, StackedSeries};

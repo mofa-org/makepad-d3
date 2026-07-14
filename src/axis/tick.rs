@@ -376,9 +376,10 @@ mod tests {
             .with_range(0.0, 500.0);
 
         // Only show ticks with value >= 50
-        let config = TickConfig::new().with_filter(TickFilter::Custom(std::sync::Arc::new(
-            |tick, _| tick.value >= 50.0,
-        )));
+        let config =
+            TickConfig::new().with_filter(TickFilter::Custom(std::sync::Arc::new(|tick, _| {
+                tick.value >= 50.0
+            })));
         let result = generate_ticks(&scale, &config);
 
         for tick in &result.major {

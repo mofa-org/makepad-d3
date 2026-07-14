@@ -14,8 +14,8 @@
 //! - Difference: Absolute difference
 //! - Dodge/Burn: Extreme lightening/darkening
 
-use super::types::Rgba;
 use super::lab::Lab;
+use super::types::Rgba;
 
 /// Blend mode for combining colors
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

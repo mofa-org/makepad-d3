@@ -84,7 +84,9 @@ impl Geometry {
 
     /// Create a LineString geometry
     pub fn line_string(coords: Vec<Position>) -> Self {
-        Geometry::LineString { coordinates: coords }
+        Geometry::LineString {
+            coordinates: coords,
+        }
     }
 
     /// Create a Polygon geometry
@@ -453,9 +455,11 @@ impl GeoJson {
         match self {
             GeoJson::Geometry(g) => vec![g],
             GeoJson::Feature(f) => f.geometry.as_ref().map(|g| vec![g]).unwrap_or_default(),
-            GeoJson::FeatureCollection(fc) => {
-                fc.features.iter().filter_map(|f| f.geometry.as_ref()).collect()
-            }
+            GeoJson::FeatureCollection(fc) => fc
+                .features
+                .iter()
+                .filter_map(|f| f.geometry.as_ref())
+                .collect(),
         }
     }
 
@@ -529,11 +533,7 @@ mod tests {
 
     #[test]
     fn test_geometry_line_string() {
-        let line = Geometry::line_string(vec![
-            [0.0, 0.0],
-            [1.0, 1.0],
-            [2.0, 0.0],
-        ]);
+        let line = Geometry::line_string(vec![[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]]);
         assert_eq!(line.geometry_type(), GeometryType::LineString);
         assert_eq!(line.position_count(), 3);
     }
@@ -562,9 +562,9 @@ mod tests {
 
         let bbox = polygon.bbox().unwrap();
         assert_eq!(bbox[0], -10.0); // west
-        assert_eq!(bbox[1], -5.0);  // south
-        assert_eq!(bbox[2], 10.0);  // east
-        assert_eq!(bbox[3], 5.0);   // north
+        assert_eq!(bbox[1], -5.0); // south
+        assert_eq!(bbox[2], 10.0); // east
+        assert_eq!(bbox[3], 5.0); // north
     }
 
     #[test]
@@ -672,12 +672,8 @@ mod tests {
 
     #[test]
     fn test_geometry_for_each_position() {
-        let polygon = Geometry::simple_polygon(vec![
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [1.0, 1.0],
-            [0.0, 0.0],
-        ]);
+        let polygon =
+            Geometry::simple_polygon(vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 0.0]]);
 
         let mut positions = Vec::new();
         polygon.for_each_position(&mut |pos| {
@@ -689,9 +685,7 @@ mod tests {
 
     #[test]
     fn test_geojson_to_json() {
-        let fc = FeatureCollection::from_features(vec![
-            Feature::new(Geometry::point(0.0, 0.0)),
-        ]);
+        let fc = FeatureCollection::from_features(vec![Feature::new(Geometry::point(0.0, 0.0))]);
         let geojson = GeoJson::FeatureCollection(fc);
         let json = geojson.to_json().unwrap();
         assert!(json.contains("FeatureCollection"));

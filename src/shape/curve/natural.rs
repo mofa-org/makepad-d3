@@ -73,9 +73,7 @@ impl NaturalCurve {
         }
 
         // Compute h values (distances between x coordinates)
-        let h: Vec<f64> = (0..n - 1)
-            .map(|i| points[i + 1].x - points[i].x)
-            .collect();
+        let h: Vec<f64> = (0..n - 1).map(|i| points[i + 1].x - points[i].x).collect();
 
         // Set up tridiagonal system for second derivatives
         let mut a = vec![0.0; n - 2];
@@ -160,11 +158,7 @@ impl Curve for NaturalCurve {
 
             let cp2 = Point::new(p1.x - dx / 3.0, p1.y - m1 * dx / 3.0);
 
-            path.push(PathSegment::CurveTo {
-                cp1,
-                cp2,
-                end: p1,
-            });
+            path.push(PathSegment::CurveTo { cp1, cp2, end: p1 });
         }
 
         path
@@ -202,10 +196,7 @@ mod tests {
     #[test]
     fn test_natural_two_points() {
         let curve = NaturalCurve::new();
-        let points = vec![
-            Point::new(0.0, 0.0),
-            Point::new(100.0, 100.0),
-        ];
+        let points = vec![Point::new(0.0, 0.0), Point::new(100.0, 100.0)];
 
         let path = curve.generate(&points);
         assert_eq!(path.len(), 2); // Falls back to linear

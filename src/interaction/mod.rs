@@ -25,10 +25,10 @@
 //! let brush = BrushBehavior::xy();
 //! ```
 
-mod zoom;
 mod brush;
 mod tooltip;
+mod zoom;
 
-pub use zoom::{ZoomTransform, ZoomBehavior};
-pub use brush::{BrushType, BrushBehavior, BrushSelection};
+pub use brush::{BrushBehavior, BrushSelection, BrushType};
 pub use tooltip::{TooltipContent, TooltipItem, TooltipPosition, TooltipState};
+pub use zoom::{ZoomBehavior, ZoomTransform};

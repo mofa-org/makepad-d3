@@ -64,19 +64,30 @@ impl<T: Clone> ThresholdScale<T> {
     ///
     /// // Grade boundaries
     /// let scale: ThresholdScale<&str> = ThresholdScale::new()
-    ///     .domain(vec![60.0, 70.0, 80.0, 90.0]);  // F, D, C, B, A
+    ///     .with_domain(vec![60.0, 70.0, 80.0, 90.0]);  // F, D, C, B, A
     /// ```
-    pub fn domain(mut self, thresholds: Vec<f64>) -> Self {
+    pub fn with_domain(mut self, thresholds: Vec<f64>) -> Self {
         self.thresholds = thresholds;
         // Ensure sorted order
-        self.thresholds.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        self.thresholds
+            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         self
+    }
+
+    /// Set the threshold values (deprecated)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_domain` instead for consistent builder pattern"
+    )]
+    pub fn domain(self, thresholds: Vec<f64>) -> Self {
+        self.with_domain(thresholds)
     }
 
     /// Set the threshold values
     pub fn set_thresholds(&mut self, thresholds: Vec<f64>) {
         self.thresholds = thresholds;
-        self.thresholds.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        self.thresholds
+            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     }
 
     /// Get the threshold values
@@ -93,12 +104,21 @@ impl<T: Clone> ThresholdScale<T> {
     /// use makepad_d3::scale::ThresholdScale;
     ///
     /// let scale = ThresholdScale::new()
-    ///     .domain(vec![0.0, 100.0])  // 2 thresholds
-    ///     .range(vec!["negative", "small", "large"]);  // 3 values
+    ///     .with_domain(vec![0.0, 100.0])  // 2 thresholds
+    ///     .with_range(vec!["negative", "small", "large"]);  // 3 values
     /// ```
-    pub fn range(mut self, values: Vec<T>) -> Self {
+    pub fn with_range(mut self, values: Vec<T>) -> Self {
         self.range_values = values;
         self
+    }
+
+    /// Set the discrete output range values (deprecated)
+    #[deprecated(
+        since = "0.2.0",
+        note = "Use `with_range` instead for consistent builder pattern"
+    )]
+    pub fn range(self, values: Vec<T>) -> Self {
+        self.with_range(values)
     }
 
     /// Set the range values
@@ -129,8 +149,7 @@ impl<T: Clone> ThresholdScale<T> {
     ///
     /// Returns true if range values count equals thresholds count + 1
     pub fn is_valid(&self) -> bool {
-        !self.range_values.is_empty() &&
-        self.range_values.len() == self.thresholds.len() + 1
+        !self.range_values.is_empty() && self.range_values.len() == self.thresholds.len() + 1
     }
 
     /// Map a continuous input value to a discrete output value
@@ -199,7 +218,10 @@ impl<T: Clone> ThresholdScale<T> {
     ///
     /// Like `invert_extent` but clamps infinities to the threshold bounds.
     pub fn invert_extent_finite(&self, index: usize) -> Option<(f64, f64)> {
-        if self.thresholds.is_empty() || self.range_values.is_empty() || index >= self.range_values.len() {
+        if self.thresholds.is_empty()
+            || self.range_values.is_empty()
+            || index >= self.range_values.len()
+        {
             return None;
         }
 
@@ -464,9 +486,7 @@ mod tests {
     #[test]
     fn test_threshold_scale_no_thresholds() {
         // No thresholds = single bucket containing everything
-        let scale = ThresholdScale::new()
-            .domain(vec![])
-            .range(vec!["all"]);
+        let scale = ThresholdScale::new().domain(vec![]).range(vec!["all"]);
 
         assert!(scale.is_valid());
         assert_eq!(scale.scale_to_value(-100.0), Some(&"all"));
@@ -592,12 +612,11 @@ mod tests {
     #[test]
     fn test_threshold_scale_many_thresholds() {
         let thresholds: Vec<f64> = (1..=9).map(|x| x as f64 * 10.0).collect();
-        let range_values: Vec<&str> = vec!["0-10", "10-20", "20-30", "30-40", "40-50",
-                                            "50-60", "60-70", "70-80", "80-90", "90+"];
+        let range_values: Vec<&str> = vec![
+            "0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60-70", "70-80", "80-90", "90+",
+        ];
 
-        let scale = ThresholdScale::new()
-            .domain(thresholds)
-            .range(range_values);
+        let scale = ThresholdScale::new().domain(thresholds).range(range_values);
 
         assert_eq!(scale.threshold_count(), 9);
         assert_eq!(scale.bucket_count(), 10);

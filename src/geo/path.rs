@@ -200,11 +200,7 @@ impl<'a, P: Projection> GeoPath<'a, P> {
     }
 
     /// Generate path segments for a polygon
-    fn polygon_to_segments(
-        &self,
-        rings: &[Vec<Position>],
-        segments: &mut Vec<GeoPathSegment>,
-    ) {
+    fn polygon_to_segments(&self, rings: &[Vec<Position>], segments: &mut Vec<GeoPathSegment>) {
         for ring in rings {
             self.ring_to_segments(ring, segments);
         }
@@ -346,9 +342,7 @@ impl<'a, P: Projection> GeoPath<'a, P> {
     /// Calculate the approximate area of a geometry in square pixels
     pub fn area(&self, geometry: &Geometry) -> f64 {
         match geometry {
-            Geometry::Polygon { coordinates } => {
-                self.polygon_area(coordinates)
-            }
+            Geometry::Polygon { coordinates } => self.polygon_area(coordinates),
             Geometry::MultiPolygon { coordinates } => {
                 coordinates.iter().map(|p| self.polygon_area(p)).sum()
             }
@@ -404,22 +398,18 @@ impl<'a, P: Projection> GeoPath<'a, P> {
     /// Calculate the approximate length of a geometry in pixels
     pub fn measure(&self, geometry: &Geometry) -> f64 {
         match geometry {
-            Geometry::LineString { coordinates } => {
-                self.line_length(coordinates)
-            }
+            Geometry::LineString { coordinates } => self.line_length(coordinates),
             Geometry::MultiLineString { coordinates } => {
                 coordinates.iter().map(|l| self.line_length(l)).sum()
             }
             Geometry::Polygon { coordinates } => {
                 coordinates.iter().map(|r| self.line_length(r)).sum()
             }
-            Geometry::MultiPolygon { coordinates } => {
-                coordinates
-                    .iter()
-                    .flat_map(|p| p.iter())
-                    .map(|r| self.line_length(r))
-                    .sum()
-            }
+            Geometry::MultiPolygon { coordinates } => coordinates
+                .iter()
+                .flat_map(|p| p.iter())
+                .map(|r| self.line_length(r))
+                .sum(),
             _ => 0.0,
         }
     }
@@ -487,12 +477,20 @@ impl<'a, P: Projection> GeoPathBuilder<'a, P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geo::projection::{EquirectangularProjection, MercatorProjection, ProjectionBuilder};
+    use crate::geo::projection::{
+        EquirectangularProjection, MercatorProjection, ProjectionBuilder,
+    };
 
     #[test]
     fn test_geo_path_segment_svg() {
-        assert_eq!(GeoPathSegment::MoveTo(10.0, 20.0).to_svg(), "M10.000000,20.000000");
-        assert_eq!(GeoPathSegment::LineTo(30.0, 40.0).to_svg(), "L30.000000,40.000000");
+        assert_eq!(
+            GeoPathSegment::MoveTo(10.0, 20.0).to_svg(),
+            "M10.000000,20.000000"
+        );
+        assert_eq!(
+            GeoPathSegment::LineTo(30.0, 40.0).to_svg(),
+            "L30.000000,40.000000"
+        );
         assert_eq!(GeoPathSegment::ClosePath.to_svg(), "Z");
     }
 
@@ -826,9 +824,7 @@ mod tests {
     #[test]
     fn test_geo_path_builder() {
         let projection = MercatorProjection::new();
-        let path = GeoPathBuilder::new(&projection)
-            .point_radius(8.0)
-            .build();
+        let path = GeoPathBuilder::new(&projection).point_radius(8.0).build();
 
         assert_eq!(path.point_radius, 8.0);
     }
@@ -865,13 +861,7 @@ mod tests {
                     [0.0, 0.0],
                 ],
                 // Hole
-                vec![
-                    [2.0, 2.0],
-                    [8.0, 2.0],
-                    [8.0, 8.0],
-                    [2.0, 8.0],
-                    [2.0, 2.0],
-                ],
+                vec![[2.0, 2.0], [8.0, 2.0], [8.0, 8.0], [2.0, 8.0], [2.0, 2.0]],
             ],
         };
 
